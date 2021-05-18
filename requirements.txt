@@ -1,0 +1,10 @@
+PyQt5
+biopython
+matplotlib
+requests
+pandas
+bs4
+clipboard
+wget
+xmltramp2
+lxml
