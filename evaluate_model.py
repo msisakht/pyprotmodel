@@ -376,7 +376,6 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
     def evaluate_rama(self):
         self.rama_types = []
         rama_preferences = {}
-        plt_dic = {}
         self.outlier_dic = collections.OrderedDict({'Model': [], 'Type': [], 'Chain': [], 'Residue': [], 'Residue number': []})
         self.countOutlier_dic = collections.OrderedDict({'Model': [], 'General': [], 'Glycine': [], 'Proline': [], 'pre-Proline': []})
         self.allowed_dic = collections.OrderedDict({'Model': []})
@@ -384,7 +383,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
 
         if len(self.rama_pdb.selectedItems()) > 0:
             self.msglabel_rama.setStyleSheet('color: #000000')
-            self.msglabel_rama.setText('Processing . . .')
+            self.msglabel_rama.setText('Processing...')
             QApplication.processEvents()
 
             try:
@@ -448,6 +447,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                 # Calculate the torsion angle of the inputs
                 aa_type = str()
                 for n, file in enumerate(self.rama_pdb.selectedItems()):
+                    plt_dic = collections.OrderedDict()
                     self.msglabel_rama.setStyleSheet('color: #000000')
                     self.msglabel_rama.setText('Processing %s/%s...' % (str(n + 1), str(len(self.rama_pdb.selectedItems()))))
                     QApplication.processEvents()
@@ -511,6 +511,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                     if self.rama_save_as.currentText() != 'None':
                         plt.figure(figsize=(int(self.figSizeX_rama.text()), int(self.figSizeY_rama.text())))
                         for idx, (key, val) in enumerate(sorted(rama_preferences.items(), key=lambda x: x[0].lower())):
+                            annotatL = []
                             if len(rama_preferences) == 4:
                                 plt.subplot(2, 2, idx + 1)
                             if len(rama_preferences) == 3:
@@ -525,23 +526,24 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                                        extent=(-180, 180, 180, -180))
                             plt.scatter([i[0] for i in normals[key]['x']], [i[0] for i in normals[key]['y']])
                             plt.scatter([i[0] for i in outliers[key]['x']], [i[0] for i in outliers[key]['y']], color='red')
-
-                            plt_dic['normal_x'] = [i[0] for i in normals[key]['x']]
-                            plt_dic['normal_y'] = [i[0] for i in normals[key]['y']]
-                            plt_dic['outlier_x'] = [i[0] for i in outliers[key]['x']]
-                            plt_dic['outlier_y'] = [i[0] for i in outliers[key]['y']]
-                            plt_dic['preference_values'] = rama_pref_values[key]
+                            plt_dic[key + '_normal_x'] = [i[0] for i in normals[key]['x']]
+                            plt_dic[key + '_normal_y'] = [i[0] for i in normals[key]['y']]
+                            plt_dic[key + '_outlier_x'] = [i[0] for i in outliers[key]['x']]
+                            plt_dic[key + '_outlier_y'] = [i[0] for i in outliers[key]['y']]
+                            # plt_dic['preference_values'] = rama_pref_values[key]
                             # add annotation
-                            for n, txt in enumerate(outliers[key]['x']):
+                            for m, txt in enumerate(outliers[key]['x']):
                                 if self.annot.currentText() == 'Residue':
-                                    annotat = [i[2] for i in outliers[key]['x']][n]
+                                    annotat = [i[2] for i in outliers[key]['x']][m]
                                 elif self.annot.currentText() == 'Residue + Residue number':
-                                    annotat = [i[2] + str(i[3]) for i in outliers[key]['x']][n]
+                                    annotat = [i[2] + str(i[3]) for i in outliers[key]['x']][m]
                                 elif self.annot.currentText() == 'Residue + Residue number + Chain id':
-                                    annotat = [i[2] + str(i[3]) + '(' + i[1] + ')' for i in outliers[key]['x']][n]
+                                    annotat = [i[2] + str(i[3]) + '(' + i[1] + ')' for i in outliers[key]['x']][m]
                                 else:
                                     annotat = ''
-                                plt.annotate(annotat, ([i[0] for i in outliers[key]['x']][n] + 2., [i[0] for i in outliers[key]['y']][n] + 2.))
+                                plt.annotate(annotat, ([i[0] for i in outliers[key]['x']][m] + 2., [i[0] for i in outliers[key]['y']][m] + 2.))
+                                annotatL.append(annotat)
+                            plt_dic[key + '_outlier_annotation'] = annotatL
                             plt.xlim([-180, 180])
                             plt.ylim([-180, 180])
                             plt.xticks([-180, 180])
@@ -556,9 +558,6 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                         # save plot to file
                         if self.rama_save_as.currentText() != 'Display & edit plot':
                             file_format = [v[0] for k, v in self.formats.items() if k + ' (*.' + v[0] + ')' == self.rama_save_as.currentText()][0]
-                            self.msglabel_rama.setStyleSheet('color: #000000')
-                            self.msglabel_rama.setText('Saving %s file...' % (file_format))
-                            QApplication.processEvents()
                             if self.rama_gen.isChecked():
                                 rama_gen = 'general_'
                             else:
@@ -579,13 +578,14 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                             plt.savefig(os.path.join(self.path, os.path.splitext(file.text())[0] + '_ramachandran_' + file_name + '.' + file_format))
                         else:
                             plt.show()
-                    # save plot data
-                    pd.DataFrame.to_csv(pd.DataFrame(dict([(k, pd.Series(v)) for k, v in plt_dic.items()])),
-                                        os.path.join(self.path, 'phi_psi_plot_data.csv'), index=False)
+                        # save plot data
+                        pd.DataFrame.to_csv(pd.DataFrame(dict([(k, pd.Series(v)) for k, v in plt_dic.items()])),
+                                            os.path.join(self.path, os.path.splitext(file.text())[0] +
+                                                         '_PhiPsi_plot_data.csv'), index=False)
                     # show outliers
                     if len(self.outlier_dic) > 0 or len(self.allowed_dic) > 0:
                         self.group_outlier.show()
-                        dic = collections.OrderedDict({})
+                        dic = collections.OrderedDict()
                         if self.display_outlier.currentText() == 'Outliers':
                             dic = self.outlier_dic
                             self.outlier_count_label.setText(str(len(dic['Model'])))
