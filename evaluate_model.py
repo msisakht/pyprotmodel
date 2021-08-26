@@ -10,6 +10,8 @@ from Bio.SeqIO.PirIO import PirIterator
 from Bio.PDB import PDBParser, PPBuilder
 import matplotlib.pyplot as plt
 from matplotlib import colors
+import pylustrator
+pylustrator.start()
 import numpy as np
 import pandas as pd
 from PyQt5.QtWidgets import QMainWindow, QApplication, QColorDialog, QHeaderView
@@ -66,10 +68,10 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
         self.xlabel.setText('Alignment position')
         self.ylabel.setText('DOPE per-residue score')
         #
-        self.energy_save_as.addItems([k + ' (*.' + v[0] + ')' for k, v in plt.gcf().canvas.get_supported_filetypes_grouped().items()] + ['Show'])
+        self.energy_save_as.addItems([k + ' (*.' + v[0] + ')' for k, v in plt.gcf().canvas.get_supported_filetypes_grouped().items()] + ['Display & edit plot'])
         self.energy_save_as.setCurrentIndex(2)
         #
-        self.evalBut.released.connect(self.evaluate_energy_th)
+        self.evalBut.released.connect(self.evaluate_energy)
         # ___ ramachandran ___
         self.rama_pdb.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
         #
@@ -82,7 +84,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
         self.display_outlier.addItems(['Outliers', 'Number of outliers', 'Models with outlier', 'Models without outlier'])
         self.display_outlier.currentIndexChanged.connect(self.display_outlier_format)
         #
-        self.rama_save_as.addItems(['None'] + [k + ' (*.' + v[0] + ')' for k, v in plt.gcf().canvas.get_supported_filetypes_grouped().items()])
+        self.rama_save_as.addItems(['None'] + [k + ' (*.' + v[0] + ')' for k, v in plt.gcf().canvas.get_supported_filetypes_grouped().items()] + ['Display & edit plot'])
         self.rama_save_as.setCurrentIndex(0)
         #
         self.group_outlier.hide()
@@ -212,14 +214,13 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
         except:
             pass
 
-    def evaluate_energy_th(self):
-        t = threading.Thread(target=self.evaluate_energy)
-        t.start()
-        self.evalBut.setEnabled(False)
-        self.msg.setText('')
-
     def evaluate_energy(self):
         self.evalBut.setText('Processing...')
+        self.evalBut.setEnabled(False)
+        self.msg.setText('')
+        self.zscore.setText('')
+        QApplication.processEvents()
+        plt_dic = {}
         modeller_path = self.get_modeller_path()
         sys.path.insert(0, modeller_path)
         try:
@@ -251,16 +252,15 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                     # draw plot
                     if self.assess.currentText() == 'DOPE' or self.assess.currentText() == 'DOPE-HR':
                         file_format = str()
-                        if self.energy_save_as.currentText() != 'Show':
+                        if self.assess.currentText() == 'DOPE':
+                            saveName = models + '_dope_plot'
+                        elif self.assess.currentText() == 'DOPE-HR':
+                            saveName = models + '_dopehr_plot'
+                        if self.energy_save_as.currentText() != 'Display & edit plot':
                             file_format = [v[0] for k, v in self.formats.items() if
                                            k + ' (*.' + v[0] + ')' == self.energy_save_as.currentText()][0]
-                            if self.assess.currentText() == 'DOPE':
-                                saveName = models + '_dope_plot.'
-                            elif self.assess.currentText() == 'DOPE-HR':
-                                saveName = models + '_dopehr_plot.'
-
                             self.msg.setStyleSheet('color: #000000')
-                            self.msg.setText('Saving %s file . . .' % (file_format))
+                            self.msg.setText('Saving %s file...' % (file_format))
                             QApplication.processEvents()
 
                         a = alignment(env, file=os.path.join(self.path, self.alignFile.currentText()))
@@ -275,31 +275,44 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                                   normalize_profile=True, smoothing_window=15)
                             tempProfileL.append([tmp_profile_name, v[1], v[2]])
                         # Plot the template and model profiles in the same plot for comparison
-                        pylab.figure(1, figsize=(int(self.figSizeX.text().strip()), int(self.figSizeY.text().strip())))
-                        pylab.xlabel(self.xlabel.text().strip())
-                        pylab.ylabel(self.ylabel.text().strip())
-                        pylab.plot(model, color='red', linewidth=int(self.lineWidth.text().strip()), label='Model')
+                        plt.figure(1, figsize=(int(self.figSizeX.text().strip()), int(self.figSizeY.text().strip())))
+                        plt.xlabel(self.xlabel.text().strip())
+                        plt.ylabel(self.ylabel.text().strip())
+                        plt.plot(model, color='red', linewidth=int(self.lineWidth.text().strip()), label='Model')
+                        plt_dic['Model'] = model
                         for profile in tempProfileL:
                             template = self.get_profile(profile[0], a[profile[1]])
-                            pylab.plot(template, color=profile[2], linewidth=int(self.lineWidth.text().strip()), label=profile[1])
-                        pylab.legend()
+                            plt_dic[os.path.basename(os.path.splitext(profile[0])[0])] = template
+                            plt.plot(template, color=profile[2], linewidth=int(self.lineWidth.text().strip()), label=profile[1])
+                        plt.legend()
+                        self.msg.setStyleSheet('color: #000000')
+                        self.msg.setText('Saving plot data...')
+                        QApplication.processEvents()
+                        pd.DataFrame.to_csv(pd.DataFrame(dict([(k, pd.Series(v)) for k, v in plt_dic.items()])), os.path.join(self.path, saveName + '_data.csv'), index=False)
                         #
-                        if self.energy_save_as.currentText() == 'Show':
-                            pylab.show()
+                        if self.energy_save_as.currentText() == 'Display & edit plot':
+                            #% start: automatic generated code from pylustrator
+                            plt.figure(1).ax_dict = {ax.get_label(): ax for ax in plt.figure(1).axes}
+                            import matplotlib as mpl
+                            #% end: automatic generated code from pylustrator
+                            plt.show()
                         else:
-                            pylab.savefig(os.path.join(self.path, saveName + file_format))
+                            plt.savefig(os.path.join(self.path, saveName + '.' + file_format))
                         print('Finished.')
                     else:
                         print('Finished.')
 
                 elif self.assess.currentText() == 'Normalized DOPE':
-                    mdl.assess_normalized_dope()
+                    zscore = mdl.assess_normalized_dope()
+                    self.zscore.setText('Z-score: ' + str(round(zscore, 3)))
                     print('Finished.')
                 elif self.assess.currentText() == 'Normalized DOPE-HR':
-                    mdl.assess_normalized_dopehr()
+                    zscore = mdl.assess_normalized_dopehr()
+                    self.zscore.setText('Z-score: ' + str(round(zscore, 3)))
                     print('Finished.')
                 elif self.assess.currentText() == 'GA341':
-                    mdl.assess_ga341()
+                    zscore = mdl.assess_ga341()
+                    self.zscore.setText('Z-score: ' + str(round(zscore, 3)))
                     print('Finished.')
                 self.msg.setStyleSheet('color: green')
                 self.msg.setText('Finished')
@@ -363,6 +376,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
     def evaluate_rama(self):
         self.rama_types = []
         rama_preferences = {}
+        plt_dic = {}
         self.outlier_dic = collections.OrderedDict({'Model': [], 'Type': [], 'Chain': [], 'Residue': [], 'Residue number': []})
         self.countOutlier_dic = collections.OrderedDict({'Model': [], 'General': [], 'Glycine': [], 'Proline': [], 'pre-Proline': []})
         self.allowed_dic = collections.OrderedDict({'Model': []})
@@ -435,7 +449,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                 aa_type = str()
                 for n, file in enumerate(self.rama_pdb.selectedItems()):
                     self.msglabel_rama.setStyleSheet('color: #000000')
-                    self.msglabel_rama.setText('Processing %s/%s . . .' % (str(n + 1), str(len(self.rama_pdb.selectedItems()))))
+                    self.msglabel_rama.setText('Processing %s/%s...' % (str(n + 1), str(len(self.rama_pdb.selectedItems()))))
                     QApplication.processEvents()
                     #
                     normals = {}
@@ -511,6 +525,12 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                                        extent=(-180, 180, 180, -180))
                             plt.scatter([i[0] for i in normals[key]['x']], [i[0] for i in normals[key]['y']])
                             plt.scatter([i[0] for i in outliers[key]['x']], [i[0] for i in outliers[key]['y']], color='red')
+
+                            plt_dic['normal_x'] = [i[0] for i in normals[key]['x']]
+                            plt_dic['normal_y'] = [i[0] for i in normals[key]['y']]
+                            plt_dic['outlier_x'] = [i[0] for i in outliers[key]['x']]
+                            plt_dic['outlier_y'] = [i[0] for i in outliers[key]['y']]
+                            plt_dic['preference_values'] = rama_pref_values[key]
                             # add annotation
                             for n, txt in enumerate(outliers[key]['x']):
                                 if self.annot.currentText() == 'Residue':
@@ -534,29 +554,34 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                             plt.grid()
                         plt.tight_layout()
                         # save plot to file
-                        file_format = [v[0] for k, v in self.formats.items() if k + ' (*.' + v[0] + ')' == self.rama_save_as.currentText()][0]
-                        self.msglabel_rama.setStyleSheet('color: #000000')
-                        self.msglabel_rama.setText('Saving %s file . . .' % (file_format))
-                        QApplication.processEvents()
-                        if self.rama_gen.isChecked():
-                            rama_gen = 'general_'
+                        if self.rama_save_as.currentText() != 'Display & edit plot':
+                            file_format = [v[0] for k, v in self.formats.items() if k + ' (*.' + v[0] + ')' == self.rama_save_as.currentText()][0]
+                            self.msglabel_rama.setStyleSheet('color: #000000')
+                            self.msglabel_rama.setText('Saving %s file...' % (file_format))
+                            QApplication.processEvents()
+                            if self.rama_gen.isChecked():
+                                rama_gen = 'general_'
+                            else:
+                                rama_gen = ''
+                            if self.rama_gly.isChecked():
+                                rama_gly = 'gly_'
+                            else:
+                                rama_gly = ''
+                            if self.rama_pro.isChecked():
+                                rama_pro = 'pro_'
+                            else:
+                                rama_pro = ''
+                            if self.rama_prePro.isChecked():
+                                rama_prePro = 'prePro_'
+                            else:
+                                rama_prePro = ''
+                            file_name = rama_gen + rama_gly + rama_pro + rama_prePro
+                            plt.savefig(os.path.join(self.path, os.path.splitext(file.text())[0] + '_ramachandran_' + file_name + '.' + file_format))
                         else:
-                            rama_gen = ''
-                        if self.rama_gly.isChecked():
-                            rama_gly = 'gly_'
-                        else:
-                            rama_gly = ''
-                        if self.rama_pro.isChecked():
-                            rama_pro = 'pro_'
-                        else:
-                            rama_pro = ''
-                        if self.rama_prePro.isChecked():
-                            rama_prePro = 'prePro_'
-                        else:
-                            rama_prePro = ''
-                        file_name = rama_gen + rama_gly + rama_pro + rama_prePro
-                        plt.savefig(os.path.join(self.path, os.path.splitext(file.text())[0] + '_ramachandran_' + file_name + '.' + file_format))
-
+                            plt.show()
+                    # save plot data
+                    pd.DataFrame.to_csv(pd.DataFrame(dict([(k, pd.Series(v)) for k, v in plt_dic.items()])),
+                                        os.path.join(self.path, 'phi_psi_plot_data.csv'), index=False)
                     # show outliers
                     if len(self.outlier_dic) > 0 or len(self.allowed_dic) > 0:
                         self.group_outlier.show()
@@ -587,7 +612,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                 print(er)
                 self.msglabel_rama.setStyleSheet('color: red')
                 self.msglabel_rama.setText('Error')
-                # print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))
+                print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))
 
 
 # def main():
