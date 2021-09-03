@@ -19,7 +19,6 @@ class PlainTextEditor(QPlainTextEdit):
         font.setPointSize(10)
         font.setStyleHint(QFont.TypeWriter)
         self.setFont(font)
-        return
 
     def zoom(self, delta):
         if delta < 0:
@@ -58,7 +57,6 @@ class AlignmentWidget(QWidget):
         self.right.setLineWrapMode(QPlainTextEdit.NoWrap)
         self.m.setSizes([200, 300])
         self.m.setStretchFactor(1, 2)
-        return
 
 
 class SequencesViewer(QMainWindow, tpl_view_align.Ui_MainWindow):
