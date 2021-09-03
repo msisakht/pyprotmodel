@@ -625,8 +625,8 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
                                          float(self.gapPenalt2dDstPower.text()), float(self.gapPenalt2dStrucProfile.text()), 0.0),
                        similarity_flag=True)
 
-            aln.write(file=os.path.join(self.path, 'Alignment.aln'), alignment_format='PIR')
-            aln.write(file=os.path.join(self.path, 'Alignment.pap'), alignment_format='PAP')
+            aln.write(file=os.path.join(self.path, self.fileName.text().strip() + '.aln'), alignment_format='PIR')
+            aln.write(file=os.path.join(self.path, self.fileName.text().strip() + '.pap'), alignment_format='PAP')
 
             self.msgLabel2.setStyleSheet('color: green')
             self.msgLabel2.setText('Finished')
