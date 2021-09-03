@@ -66,6 +66,7 @@ class SequencesViewer(QMainWindow, tpl_view_align.Ui_MainWindow):
     infoFile = json.load(file)
     path = infoFile['Path']
     file = ''
+    hl = ''
     recs = None
     aln = None
 
@@ -147,10 +148,12 @@ class SequencesViewer(QMainWindow, tpl_view_align.Ui_MainWindow):
         if len(query.strip()) > 0:
             for i in aln:
                 if query in i.seq:
+                    self.hl = i.id
                     start = i.seq.index(query)
                     self.start.setText(str(start))
                     self.end.setText(str(start + len(query)))
         else:
+            self.hl = ''
             self.start.setText('0')
             self.end.setText(str(len(aln[0])))
         self.show_alignment()
@@ -179,22 +182,28 @@ class SequencesViewer(QMainWindow, tpl_view_align.Ui_MainWindow):
             colors = self.get_protein_colors()
             format = QtGui.QTextCharFormat()
             format.setBackground(QtGui.QBrush(QtGui.QColor('white')))
-            cursor = self.alnview.right.textCursor()
+            cursorR = self.alnview.right.textCursor()
+            cursorL = self.alnview.left.textCursor()
             aln = AlignIO.read(self.file, 'pir')
             lbls = np.arange(start, end + 1, 10)
             head = ''.join([('%-10s' % i) for i in lbls])
-            cursor.insertText(head)
+            cursorR.insertText(head)
             self.alnview.right.insertPlainText('\n')
-            self.alnview.left.appendPlainText(' ')
+            self.alnview.left.appendPlainText(' \n')
             for a in aln:
                 seq = a.seq[start:end]
-                self.alnview.left.appendPlainText(a.id)
+                if a.id == self.hl:
+                    cursorL.insertHtml('<span style="background-color:#d6d30b;">%s</span>' % a.id)
+                    self.alnview.left.insertPlainText('\n')
+                else:
+                    cursorL.insertHtml(a.id)
+                    self.alnview.left.insertPlainText('\n')
                 line = ''
                 for aa in seq:
                    if aa in colors.keys():
                         c = colors[aa]
                         line += '<span style="background-color:%s;">%s</span>' % (c, aa)
-                cursor.insertHtml(line)
+                cursorR.insertHtml(line)
                 self.alnview.right.insertPlainText('\n')
         except:
             pass
