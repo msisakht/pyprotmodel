@@ -47,7 +47,7 @@ class AddLigand(QMainWindow, tpl_add_ligand.Ui_Form):
     def __init__(self):
         super(self.__class__, self).__init__()
         self.setupUi(self)
-        self.alignFile.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.ali')])
+        self.alignFile.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.aln')])
         self.alignFile.currentIndexChanged.connect(self.get_temps)
         # click on pdb
         self.templates.clicked.connect(self.get_std_lig)
@@ -119,7 +119,7 @@ class AddLigand(QMainWindow, tpl_add_ligand.Ui_Form):
         self.restraint.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.rsr')] + ['Define new'])
         self.restraint.currentIndexChanged.connect(self.def_restraint)
         # check for ali and rsr files
-        self.ali_fileL = [i for i in os.listdir(self.path) if i.endswith('.ali')]
+        self.ali_fileL = [i for i in os.listdir(self.path) if i.endswith('.aln')]
         self.rsr_fileL = [i for i in os.listdir(self.path) if i.endswith('.rsr')]
         # apply button
         self.applyBut.released.connect(self.add_lig_to_file)
@@ -133,13 +133,13 @@ class AddLigand(QMainWindow, tpl_add_ligand.Ui_Form):
         ali_files = []
         rsr_files = []
         for i in os.listdir(self.path):
-            if i.endswith('.ali') and i not in ali_files:
+            if i.endswith('.aln') and i not in ali_files:
                 ali_files.append(i)
             if i.endswith('.rsr') and i not in rsr_files:
                 rsr_files.append(i)
         while self.ali_fileL != ali_files:
             self.alignFile.clear()
-            self.alignFile.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.ali')])
+            self.alignFile.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.aln')])
             self.ali_fileL = ali_files
         while self.rsr_fileL != rsr_files:
             self.restraint.clear()

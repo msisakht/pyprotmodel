@@ -20,7 +20,7 @@ class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
     infoFile = json.load(file)
     path = infoFile['Path']
 
-    ali_fileL = []
+    aln_fileL = []
     rsr_fileL = []
     vtfmL = ['Slow', 'Normal', 'Fast', 'Very fast', 'Fatest']
     assessL = ['GA341', 'DOPE', 'DOPE-HR', 'Normalized DOPE', 'SOAP-PP', 'SOAP-Loop', 'SOAP-Peptide', 'SOAP-Protein']
@@ -37,7 +37,7 @@ class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
     def __init__(self):
         super(self.__class__, self).__init__()
         self.setupUi(self)
-        self.alignFile.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.ali')])
+        self.alignFile.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.aln')])
         self.alignFile.currentIndexChanged.connect(self.get_temp)
         # deviation
         self.deviation.setText('4')
@@ -77,7 +77,7 @@ class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
         # symmetry deviation
         self.symDev.setText('1')
         # check for ali and rsr files
-        self.ali_fileL = [i for i in os.listdir(self.path) if i.endswith('.ali')]
+        self.aln_fileL = [i for i in os.listdir(self.path) if i.endswith('.aln')]
         self.rsr_fileL = [i for i in os.listdir(self.path) if i.endswith('.rsr')]
         # save results as csv
         self.saveCsvBut.released.connect(self.save_result_csv)
@@ -106,23 +106,23 @@ class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
 
         while self.path != path:
             self.alignFile.clear()
-            self.alignFile.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.ali')])
+            self.alignFile.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.aln')])
             #
             self.restraint.clear()
             self.restraint.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.rsr')])
             self.path = path
         #
-        ali_files = []
+        aln_files = []
         rsr_files = []
         for i in os.listdir(self.path):
-            if i.endswith('.ali') and i not in ali_files:
-                ali_files.append(i)
+            if i.endswith('.aln') and i not in aln_files:
+                aln_files.append(i)
             if i.endswith('.rsr') and i not in rsr_files:
                 rsr_files.append(i)
-        while self.ali_fileL != ali_files:
+        while self.aln_fileL != aln_files:
             self.alignFile.clear()
-            self.alignFile.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.ali')])
-            self.ali_fileL = ali_files
+            self.alignFile.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.aln')])
+            self.aln_fileL = aln_files
         while self.rsr_fileL != rsr_files:
             self.restraint.clear()
             self.restraint.addItems(

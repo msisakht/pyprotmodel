@@ -987,7 +987,7 @@ class TempSearch(QMainWindow, tpl_search_temp.Ui_Form):
 
     def target_pir_file(self, name, seq):
         # create pir format file
-        pirFile = name + '.ali'
+        pirFile = name + '.pir'
         pirCode = 'P1'
         with open(os.path.join(self.path, pirFile), 'w') as f:
             f.write(

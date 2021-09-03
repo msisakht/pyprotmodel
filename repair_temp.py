@@ -16,7 +16,7 @@ class RepairTemp(QMainWindow, tpl_repair_temp.Ui_Form):
     path = infoFile['Path']
 
     pdb_fileL = []
-    ali_fileL = []
+    aln_fileL = []
     YesNoL = ['Yes', 'No']
     patchTypeL = [['1MC', '+'], ['1MT', '+'], ['25P1', '+'], ['25P2', '+'], ['3PHO', '+'], ['3TER', '+'], ['5DP', '+'],
                 ['5MC1', '+'], ['5MC2', '+'], ['5MET', '+'], ['5PHO', '+'], ['5TER', '+'], ['9EG', '+'],
@@ -90,12 +90,12 @@ class RepairTemp(QMainWindow, tpl_repair_temp.Ui_Form):
         self.path = path
         #
         pdb_files = []
-        ali_files = []
+        aln_files = []
         for i in os.listdir(self.path):
             if i.endswith('.pdb') and i not in pdb_files:
                 pdb_files.append(i)
-            if i.endswith('.ali') and i not in ali_files:
-                ali_files.append(i)
+            if i.endswith('.aln') and i not in aln_files:
+                aln_files.append(i)
         while self.pdb_fileL != pdb_files:
             self.PDB.clear()
             self.PDB.addItems([os.path.basename(i) for i in os.listdir(path) if i.endswith('.pdb')])
@@ -316,7 +316,7 @@ class RepairTemp(QMainWindow, tpl_repair_temp.Ui_Form):
         if self.patchTerminal.currentText() == 'No':
             self.patchTerminalL.insert(0, False)
             self.patchTerminalL = self.patchTerminalL[:1]
-        elif self.patchTerminalVar.currentText() == 'yes':
+        elif self.patchTerminal.currentText() == 'yes':
             self.patchTerminalL.insert(0, True)
             self.patchTerminalL = self.patchTerminalL[:1]
         # get add patch >> get from self.addedPdbChainResNumDic

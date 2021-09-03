@@ -53,7 +53,7 @@ class DefineRestraint(QMainWindow, tpl_def_restraint.Ui_Form):
         self.restraintType.addItems(self.restraintTypeL)
         self.restraintType.currentIndexChanged.connect(self.rest_type_alignment)
         # alignment
-        self.alignment.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.ali')])
+        self.alignment.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.aln')])
         # accessibility type
         self.accessibilType.setText('8')
         # convert to spline
@@ -138,7 +138,7 @@ class DefineRestraint(QMainWindow, tpl_def_restraint.Ui_Form):
         self.minFeature.released.connect(self.min_feat_mat_form)
         # check for pdb and ali files
         self.pdb_fileL = [os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')]
-        self.ali_fileL = [os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.ali')]
+        self.aln_fileL = [os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.aln')]
         # apply & remove buttons
         self.applyBut.released.connect(self.get_value_th)
         self.removeBut.released.connect(self.remove_pdb_file)
@@ -160,20 +160,20 @@ class DefineRestraint(QMainWindow, tpl_def_restraint.Ui_Form):
         self.path = path
         #
         pdb_files = []
-        ali_files = []
+        aln_files = []
         for i in os.listdir(self.path):
             if i.endswith('.pdb') and i not in pdb_files:
                 pdb_files.append(i)
-            if i.endswith('.ali') and i not in ali_files:
-                ali_files.append(i)
+            if i.endswith('.aln') and i not in aln_files:
+                aln_files.append(i)
         while self.pdb_fileL != pdb_files:
             self.PDBFile.clear()
             self.PDBFile.addItems([os.path.basename(i) for i in os.listdir(path) if i.endswith('.pdb')])
             self.pdb_fileL = pdb_files
-        while self.ali_fileL != ali_files:
+        while self.aln_fileL != aln_files:
             self.alignment.clear()
-            self.alignment.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.ali')])
-            self.ali_fileL = ali_files
+            self.alignment.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.aln')])
+            self.aln_fileL = aln_files
 
     def res_from_to(self):
         self.resFrom.clear()
@@ -246,12 +246,12 @@ class DefineRestraint(QMainWindow, tpl_def_restraint.Ui_Form):
             self.alignmentLabel.setEnabled(True)
             self.alignment.setEnabled(True)
             self.alignment.clear()
-            self.alignment.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.ali')])
+            self.alignment.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.aln')])
         else:
             self.alignmentLabel.setEnabled(False)
             self.alignment.setEnabled(False)
             self.alignment.clear()
-            self.alignment.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.ali')])
+            self.alignment.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.aln')])
             self.alignment.setCurrentIndex(0)
 
     def load_atom(self):

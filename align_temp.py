@@ -12,6 +12,7 @@ from Bio.PDB import PDBList
 from Bio.PDB import PDBParser
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
 import tpl_align_temp
+import view_align
 
 
 class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
@@ -22,7 +23,7 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
     pir_errorL = []
     seqL = []
     pdb_fileL = []
-    ali_fileL = []
+    pir_fileL = []
     ali_file = ''
     YesNoL = ['Yes', 'No']
     patchTypeL = [['1MC', '+'], ['1MT', '+'], ['25P1', '+'], ['25P2', '+'], ['3PHO', '+'], ['3TER', '+'], ['5DP', '+'],
@@ -148,9 +149,11 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
         self.seq.setCurrentIndex(0)
         # check for pdb and ali files
         self.pdb_fileL = [os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')]
-        self.ali_fileL = [os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.ali')]
+        self.pir_fileL = [os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pir')]
         # align button
         self.alignBut.released.connect(self.align_get_values_th)
+        # view alignment
+        self.viewAlign.released.connect(self.view_align)
         # remove file
         self.ali_remove_file.released.connect(self.remove_ali_file)
 
@@ -171,20 +174,20 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
         self.path = path
         #
         pdb_files = []
-        ali_files = []
+        pir_files = []
         for i in os.listdir(self.path):
             if i.endswith('.pdb') and i not in pdb_files:
                 pdb_files.append(i)
-            if i.endswith('.ali') and i not in ali_files:
-                ali_files.append(i)
+            if i.endswith('.pir') and i not in pir_files:
+                pir_files.append(i)
         while self.pdb_fileL != pdb_files:
             self.alignPDB.clear()
             self.alignPDB.addItems([os.path.basename(i) for i in os.listdir(path) if i.endswith('.pdb')])
             self.pdb_fileL = pdb_files
-        while self.ali_fileL != ali_files:
+        while self.pir_fileL != pir_files:
             self.seq.clear()
-            self.seq.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.ali')])
-            self.ali_fileL = ali_files
+            self.seq.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.pir')])
+            self.pir_fileL = pir_files
 
     def browse_ali_file(self):
         self.ali_file = QFileDialog.getOpenFileName()[0]
@@ -226,7 +229,7 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
                 self.generate_ali_file(name, seq)
             if len(self.seqL) > 0 or len(acc) > 0:
                 self.seq.clear()
-                self.seq.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.ali')])
+                self.seq.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.pir')])
                 self.msg_gen.setStyleSheet('color: green')
                 self.msg_gen.setText('Finished')
                 QApplication.processEvents()
@@ -297,7 +300,7 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
 
     def generate_ali_file(self, name, seq):
         # create pir format file
-        pirFile = name + '.ali'
+        pirFile = name + '.pir'
         pirCode = 'P1'
         with open(os.path.join(self.path, pirFile), 'w') as f:
             f.write('>' + pirCode + ';' + name + '\n' + 'sequence:' + name + ':::::::0.00: 0.00' + '\n' + seq + '*')
@@ -622,7 +625,7 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
                                          float(self.gapPenalt2dDstPower.text()), float(self.gapPenalt2dStrucProfile.text()), 0.0),
                        similarity_flag=True)
 
-            aln.write(file=os.path.join(self.path, 'Alignment.ali'), alignment_format='PIR')
+            aln.write(file=os.path.join(self.path, 'Alignment.aln'), alignment_format='PIR')
             aln.write(file=os.path.join(self.path, 'Alignment.pap'), alignment_format='PAP')
 
             self.msgLabel2.setStyleSheet('color: green')
@@ -640,6 +643,16 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
             self.alignBut.setText('Align')
             self.alignBut.setEnabled(True)
             pass
+
+    def view_align_th(self):
+        t = threading.Thread(target=self.view_align)
+        t.start()
+        self.viewAlign.setEnabled(False)
+        self.msgLabel2.setText('')
+
+    def view_align(self):
+        self.v = view_align.SequencesViewer()
+        self.v.show()
 
 
 # def main():

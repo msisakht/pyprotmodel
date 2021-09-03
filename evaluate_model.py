@@ -3,15 +3,12 @@ import sys
 import math
 import json
 import collections
-import pylab
-import threading
 from winreg import *
 from Bio.SeqIO.PirIO import PirIterator
 from Bio.PDB import PDBParser, PPBuilder
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import pylustrator
-pylustrator.start()
 import numpy as np
 import pandas as pd
 from PyQt5.QtWidgets import QMainWindow, QApplication, QColorDialog, QHeaderView
@@ -25,7 +22,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
     path = infoFile['Path']
 
     pdb_fileL = []
-    ali_fileL = []
+    aln_fileL = []
     assessL = ['DOPE', 'DOPE-HR', 'Normalized DOPE', 'Normalized DOPE-HR', 'GA341']
     templateDic = {}
     addedTempColorDic = {}
@@ -40,7 +37,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
         self.setupUi(self)
         self.model.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.pdb')])
         #
-        self.alignFile.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.ali')])
+        self.alignFile.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.aln')])
         self.alignFile.currentIndexChanged.connect(self.get_template)
         #
         self.assess.addItems(self.assessL)
@@ -90,7 +87,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
         self.group_outlier.hide()
         #
         self.pdb_fileL = [os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')]
-        self.ali_fileL = [os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.ali')]
+        self.aln_fileL = [os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.aln')]
         #
         self.evalRamaBut.released.connect(self.evaluate_rama)
         #
@@ -114,22 +111,22 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
         self.path = path
         #
         pdb_files = []
-        ali_files = []
+        aln_files = []
         for i in os.listdir(self.path):
             if i.endswith('.pdb') and i not in pdb_files:
                 pdb_files.append(i)
-            if i.endswith('.ali') and i not in ali_files:
-                ali_files.append(i)
+            if i.endswith('.aln') and i not in aln_files:
+                aln_files.append(i)
         while self.pdb_fileL != pdb_files:
             self.model.clear()
             self.model.addItems([os.path.basename(i) for i in os.listdir(path) if i.endswith('.pdb')])
             self.rama_pdb.clear()
             self.rama_pdb.addItems([os.path.basename(i) for i in os.listdir(path) if i.endswith('.pdb')])
             self.pdb_fileL = pdb_files
-        while self.ali_fileL != ali_files:
+        while self.aln_fileL != aln_files:
             self.alignFile.clear()
-            self.alignFile.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.ali')])
-            self.ali_fileL = ali_files
+            self.alignFile.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.aln')])
+            self.aln_fileL = aln_files
 
     def get_template(self):
         self.templateDic = {}
@@ -216,6 +213,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
 
     def evaluate_energy(self):
         self.evalBut.setText('Processing...')
+        pylustrator.start()
         self.evalBut.setEnabled(False)
         self.msg.setText('')
         self.zscore.setText('')
@@ -291,11 +289,8 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                         pd.DataFrame.to_csv(pd.DataFrame(dict([(k, pd.Series(v)) for k, v in plt_dic.items()])), os.path.join(self.path, saveName + '_data.csv'), index=False)
                         #
                         if self.energy_save_as.currentText() == 'Display & edit plot':
-                            #% start: automatic generated code from pylustrator
-                            plt.figure(1).ax_dict = {ax.get_label(): ax for ax in plt.figure(1).axes}
-                            import matplotlib as mpl
-                            #% end: automatic generated code from pylustrator
                             plt.show()
+                            plt.close()
                         else:
                             plt.savefig(os.path.join(self.path, saveName + '.' + file_format))
                         print('Finished.')
@@ -374,6 +369,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
             pass
 
     def evaluate_rama(self):
+        pylustrator.start()
         self.rama_types = []
         rama_preferences = {}
         self.outlier_dic = collections.OrderedDict({'Model': [], 'Type': [], 'Chain': [], 'Residue': [], 'Residue number': []})
@@ -444,9 +440,10 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                                 rama_pref_values[key][int(float(line.split()[1])) + 180][
                                     int(float(line.split()[0])) + 179] = float(
                                     line.split()[2])
+
                 # Calculate the torsion angle of the inputs
-                aa_type = str()
-                for n, file in enumerate(self.rama_pdb.selectedItems()):
+                def get_plot(n, file, save=False):
+                    aa_type = ''
                     plt_dic = collections.OrderedDict()
                     self.msglabel_rama.setStyleSheet('color: #000000')
                     self.msglabel_rama.setText('Processing %s/%s...' % (str(n + 1), str(len(self.rama_pdb.selectedItems()))))
@@ -556,7 +553,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                             plt.grid()
                         plt.tight_layout()
                         # save plot to file
-                        if self.rama_save_as.currentText() != 'Display & edit plot':
+                        if save:
                             file_format = [v[0] for k, v in self.formats.items() if k + ' (*.' + v[0] + ')' == self.rama_save_as.currentText()][0]
                             if self.rama_gen.isChecked():
                                 rama_gen = 'general_'
@@ -578,6 +575,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                             plt.savefig(os.path.join(self.path, os.path.splitext(file.text())[0] + '_ramachandran_' + file_name + '.' + file_format))
                         else:
                             plt.show()
+                            plt.close()
                         # save plot data
                         pd.DataFrame.to_csv(pd.DataFrame(dict([(k, pd.Series(v)) for k, v in plt_dic.items()])),
                                             os.path.join(self.path, os.path.splitext(file.text())[0] +
@@ -608,11 +606,17 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                         self.table_results.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
                     self.msglabel_rama.setStyleSheet('color: green')
                     self.msglabel_rama.setText('Finished')
+
+                if self.rama_save_as.currentText() == 'Display & edit plot':
+                    get_plot(0, self.rama_pdb.selectedItems()[0])
+                else:
+                    for n, file in enumerate(self.rama_pdb.selectedItems()):
+                        get_plot(n, file, True)
             except Exception as er:
                 print(er)
                 self.msglabel_rama.setStyleSheet('color: red')
                 self.msglabel_rama.setText('Error')
-                print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))
+                # print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))
 
 
 # def main():
