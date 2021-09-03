@@ -84,6 +84,7 @@ class SequencesViewer(QMainWindow, tpl_view_align.Ui_MainWindow):
         self.browsAln.released.connect(self.brows_aln)
         self.start.textChanged.connect(self.show_alignment)
         self.end.textChanged.connect(self.show_alignment)
+        self.search.textChanged.connect(self.search_seq)
         self.ed = PlainTextEditor(self, readOnly=True)
         self.ed.setLineWrapMode(QPlainTextEdit.NoWrap)
         self.tabs.addTab(self.ed, 'Sequence')
@@ -140,6 +141,20 @@ class SequencesViewer(QMainWindow, tpl_view_align.Ui_MainWindow):
             except:
                 pass
 
+    def search_seq(self):
+        query = self.search.text().upper()
+        aln = AlignIO.read(self.file, 'pir')
+        if len(query.strip()) > 0:
+            for i in aln:
+                if query in i.seq:
+                    start = i.seq.index(query)
+                    self.start.setText(str(start))
+                    self.end.setText(str(start + len(query)))
+        else:
+            self.start.setText('0')
+            self.end.setText(str(len(aln[0])))
+        self.show_alignment()
+
     def show_seq(self):
         if self.recs is None:
             return
@@ -176,7 +191,7 @@ class SequencesViewer(QMainWindow, tpl_view_align.Ui_MainWindow):
                 self.alnview.left.appendPlainText(a.id)
                 line = ''
                 for aa in seq:
-                    if aa in colors.keys():
+                   if aa in colors.keys():
                         c = colors[aa]
                         line += '<span style="background-color:%s;">%s</span>' % (c, aa)
                 cursor.insertHtml(line)
