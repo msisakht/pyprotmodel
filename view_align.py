@@ -150,6 +150,12 @@ class SequencesViewer(QMainWindow, tpl_view_align.Ui_MainWindow):
                     start = i.seq.index(query)
                     self.start.setText(str(start))
                     self.end.setText(str(start + len(query)))
+                    break
+                else:
+                    self.hl = ''
+                    self.start.setText('')
+                    self.end.setText('')
+                    continue
         else:
             self.hl = ''
             self.start.setText('0')
