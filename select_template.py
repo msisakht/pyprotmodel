@@ -11,6 +11,7 @@ import requests
 import bs4
 from Bio import SearchIO
 from Bio import SeqIO
+from Bio import AlignIO
 from Bio import Phylo
 from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB import PDBList
@@ -75,7 +76,7 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
         try:
             # get accession num of primary protein
             for i in os.listdir(self.path):
-                if i.endswith('.txt'):
+                if i.endswith('_info.txt'):
                     with open(os.path.join(self.path, i), 'r') as f:
                         self.s = re.search(r'Accession: (.*)\nProgram: (.*)', f.read())
             self.programTypeLabel.setText(self.s.group(2))
@@ -319,6 +320,11 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
                 for record in SeqIO.parse(readPDB, "pdb-seqres"):
                     st.add(record.seq)
                 seq.append(['>' + os.path.splitext(os.path.basename(file))[0] + '\n' + ''.join([str(i) for i in st])])
+            # add target seq
+            t_seq_file = os.path.join(self.path, self.s.group(1) + '.pir')
+            if os.path.exists(t_seq_file):
+                t_seq = AlignIO.read(t_seq_file, 'pir')[0]
+                seq.append(['>' + self.s.group(1) + '\n' + ''.join([i for i in t_seq.seq])])
             # clustal omega params
             params_omega = {}
             params_omega['title'] = ''
@@ -352,7 +358,6 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
             self.compareBut.setText('Compare selected templates (Error)')
             self.compareBut.setEnabled(True)
             QApplication.processEvents()
-            # print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))
             pass
 
         # MODELLER compare
