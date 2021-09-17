@@ -145,7 +145,7 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
         self.dendrogram.addItems(self.YesNoL)
         self.dendrogram.setCurrentIndex(1)
         # target sequnce
-        self.seq.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.ali')])
+        self.seq.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.pir')])
         self.seq.setCurrentIndex(0)
         # check for pdb and ali files
         self.pdb_fileL = [os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')]

@@ -156,13 +156,12 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
                 self.modellerConLable.setText('Not connected')
                 pass
 
-        sysPath = [i for i in sys.path if os.path.basename(i) == 'modlib']
-        if len(sysPath) > 0:
+        if os.path.exists(self.modellerPath.text().strip()):
+            modeller_Path = self.modellerPath.text().strip()
+            sys.path.append(os.path.join(modeller_Path, 'modlib'))
             try:
                 from modeller import info
-                modeller_Path = sysPath[0]
-                self.modellerPath.setText(os.path.dirname(modeller_Path))
-                self.set_modeller_path(self.modellerPath.text().strip(), info.version)
+                self.set_modeller_path(modeller_Path, info.version)
                 self.modellerConLable.setStyleSheet('color: green')
                 self.modellerConLable.setText('Connected')
             except ModuleNotFoundError:
