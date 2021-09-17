@@ -18,7 +18,7 @@ import evaluate_model
 import refine_loop
 
 
-class PyModel(QMainWindow, tpl_tabs.Ui_Form):
+class PyProtModel(QMainWindow, tpl_tabs.Ui_Form):
     file = open('info')
     infoFile = json.load(file)
     path = infoFile['Path']
@@ -30,9 +30,9 @@ class PyModel(QMainWindow, tpl_tabs.Ui_Form):
         #
         try:
             modelVer = self.get_modeller_version()
-            self.setWindowTitle('PyModel V.1 (' + modelVer + ')')
+            self.setWindowTitle('PyProtModel V.1 (' + modelVer + ')')
         except:
-            self.setWindowTitle('PyModel V.1')
+            self.setWindowTitle('PyProtModel V.1')
             pass
         self.setFixedSize(self.size())
         #
@@ -82,9 +82,9 @@ class PyModel(QMainWindow, tpl_tabs.Ui_Form):
 
     def get_modeller_version(self):
         try:
-            pymodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyModel', 0, KEY_READ)
-            [pathVal, regtype] = (QueryValueEx(pymodel_key, 'MODELLER_VERSION'))
-            CloseKey(pymodel_key)
+            pyprotmodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyProtModel', 0, KEY_READ)
+            [pathVal, regtype] = (QueryValueEx(pyprotmodel_key, 'MODELLER_VERSION'))
+            CloseKey(pyprotmodel_key)
             return pathVal
         except:
             pass
@@ -94,7 +94,7 @@ def welcome():
     os.system('color 4f')
     os.system('cls')
     print('\nDEPARTMENT OF MEDICAL BIOCHEMISTRY, FACULTY OF MEDICINE, SHIRAZ, IRAN\n\n')
-    print('PyModel Version 1.0')
+    print('PyProtModel Version 1.0')
     print(' _____   __     __  __  __    ____    _____    ______   _      ')
     print('|  __ \  \ \   / / |  \/  |  / __ \  |  __ \  |  ____| | |     ')
     print('| |__) |  \ \_/ /  | \  / | | |  | | | |  | | | |__    | |     ')
@@ -111,7 +111,7 @@ def main():
     welcome()
     os.system('color 0f')
     app = QApplication(sys.argv)
-    form = PyModel()
+    form = PyProtModel()
     form.show()
     app.exec_()
     os.system('pause')

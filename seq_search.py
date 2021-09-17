@@ -118,9 +118,9 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
 
     def get_modeller_path(self):
         try:
-            pymodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyModel', 0, KEY_READ)
-            [pathVal, regtype] = (QueryValueEx(pymodel_key, 'MODELLER_PATH'))
-            CloseKey(pymodel_key)
+            pyprotmodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyProtModel', 0, KEY_READ)
+            [pathVal, regtype] = (QueryValueEx(pyprotmodel_key, 'MODELLER_PATH'))
+            CloseKey(pyprotmodel_key)
             return pathVal
         except:
             self.modellerConLable.setStyleSheet('color: red')
@@ -128,12 +128,12 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
 
     def set_modeller_path(self, p, v):
         try:
-            keyVal = r"SOFTWARE\PyModel"
+            keyVal = r"SOFTWARE\PyProtModel"
             # create a key in reg if not exist
             if not os.path.exists(keyVal):
                 CreateKey(HKEY_CURRENT_USER, keyVal)
             # set modeller path
-            RegistryKey = OpenKey(HKEY_CURRENT_USER, r"SOFTWARE\PyModel", 0, KEY_WRITE)
+            RegistryKey = OpenKey(HKEY_CURRENT_USER, r"SOFTWARE\PyProtModel", 0, KEY_WRITE)
             SetValueEx(RegistryKey, "MODELLER_PATH", 0, REG_SZ, p)
             # set modeller version
             SetValueEx(RegistryKey, "MODELLER_VERSION", 0, REG_SZ, v)

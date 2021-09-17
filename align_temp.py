@@ -159,9 +159,9 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
 
     def get_modeller_path(self):
         try:
-            pymodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyModel', 0, KEY_READ)
-            [pathVal, regtype] = (QueryValueEx(pymodel_key, 'MODELLER_PATH'))
-            CloseKey(pymodel_key)
+            pyprotmodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyProtModel', 0, KEY_READ)
+            [pathVal, regtype] = (QueryValueEx(pyprotmodel_key, 'MODELLER_PATH'))
+            CloseKey(pyprotmodel_key)
             return pathVal
         except:
             self.msgLabel2.setStyleSheet('color: red')

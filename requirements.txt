@@ -8,3 +8,4 @@ clipboard
 wget
 xmltramp2
 lxml
+pylustrator
