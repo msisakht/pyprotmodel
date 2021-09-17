@@ -31,7 +31,7 @@ class Ui_MainWindow(object):
         self.sidebar.setMinimumSize(QtCore.QSize(180, 0))
         self.sidebar.setObjectName("sidebar")
         self.formLayoutWidget = QtWidgets.QWidget(self.sidebar)
-        self.formLayoutWidget.setGeometry(QtCore.QRect(10, 120, 161, 25))
+        self.formLayoutWidget.setGeometry(QtCore.QRect(10, 150, 161, 25))
         self.formLayoutWidget.setObjectName("formLayoutWidget")
         self.formLayout = QtWidgets.QFormLayout(self.formLayoutWidget)
         self.formLayout.setContentsMargins(0, 0, 0, 0)
@@ -64,6 +64,9 @@ class Ui_MainWindow(object):
         self.end = QtWidgets.QLineEdit(self.horizontalLayoutWidget)
         self.end.setObjectName("end")
         self.horizontalLayout_3.addWidget(self.end)
+        self.search = QtWidgets.QLineEdit(self.sidebar)
+        self.search.setGeometry(QtCore.QRect(10, 120, 161, 20))
+        self.search.setObjectName("search")
         self.sidebarLayout.addWidget(self.sidebar)
         self.horizontalLayout.addLayout(self.sidebarLayout)
         self.horizontalLayout_2.addLayout(self.horizontalLayout)
@@ -89,6 +92,7 @@ class Ui_MainWindow(object):
         self.browsAln.setText(_translate("MainWindow", "Browse file"))
         self.start.setPlaceholderText(_translate("MainWindow", "Start"))
         self.end.setPlaceholderText(_translate("MainWindow", "End"))
+        self.search.setPlaceholderText(_translate("MainWindow", "Search"))
 
 
 if __name__ == "__main__":

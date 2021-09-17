@@ -39,6 +39,8 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
             pass
         # blast files
         self.blastFile.addItems([i for i in os.listdir(self.path) if os.path.isfile(os.path.join(self.path, i)) and i.endswith('.blast')])
+        # custom ids
+        self.pdb_selected.textEdited.connect(self.custom_id)
         # show templates
         self.showBut.released.connect(self.get_templates)
         self.FBRec.returnPressed.connect(self.get_templates)
@@ -244,12 +246,20 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
                 if idx in self.pdb_index:
                     self.pdb_index.remove(idx)
             # display selected pdb cods
-            all_selected = [i for i in re.findall(r'(\w{4})', self.pdb_selected.text())] + list(set(i[1] for i in self.pdbL if i[0] in self.pdb_index))
-            pdb_selected_str = ', '.join(list(set(i for i in all_selected)))
+            all_selected = list(set(i[1] for i in self.pdbL if i[0] in self.pdb_index))
+            pdb_selected_str = ', '.join(list(set(i for i in all_selected)) + self.custom_id())
             self.pdb_selected.setText(pdb_selected_str)
         except Exception as er:
             print(er)
             pass
+
+    def custom_id(self):
+        custom_ids = set()
+        ids = [i for i in re.findall(r'(\w{4})', self.pdb_selected.text())]
+        for i in ids:
+            if i not in set(i[1] for i in self.pdbL):
+                custom_ids.add(i)
+        return list(custom_ids)
 
     def download_pdb_th(self):
         self.download_th = threading.Thread(target=self.download_pdb)
@@ -269,6 +279,7 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
                     else:
                         self.downloadBut.setText('Downloading ' + str(n + 1) + '/' + str(len(u_code)))
                         pdbdown.retrieve_pdb_file(pdb_code=i, pdir=self.path, file_format='pdb', overwrite=True, obsolete=False)
+                        os.rename(os.path.join(self.path, 'pdb' + i.lower() + '.ent'), os.path.join(self.path, i + '.pdb'))
                         if not os.path.exists(os.path.join(self.path, i + '.pdb')):
                             raise Exception
                 except Exception as er:
