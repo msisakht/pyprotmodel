@@ -404,7 +404,7 @@ class TempSearch(QMainWindow, tpl_search_temp.Ui_Form):
         self.params_ncbi['program'] = 'blastp'
         # seq type
         self.params_ncbi['stype'] = 'protein'
-        # db
+        # dbr
         self.params_ncbi['database'] = 'pdb'
         # matrix
         self.params_ncbi['matrix'] = self.matrixTypesNCBI.currentText()

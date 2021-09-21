@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-from winreg import *
 import threading
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
 import tpl_optimize_model
@@ -98,16 +97,6 @@ class OptimizeModel(QMainWindow, tpl_optimize_model.Ui_Form):
         self.optBackBoneBut.released.connect(self.optimize_backBone_th)
         self.backBone_remove.released.connect(self.remove_backBone_pdb)
 
-    def get_modeller_path(self):
-        try:
-            pyprotmodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyProtModel', 0, KEY_READ)
-            [pathVal, regtype] = (QueryValueEx(pyprotmodel_key, 'MODELLER_PATH'))
-            CloseKey(pyprotmodel_key)
-            return pathVal
-        except:
-            self.msg_1.setStyleSheet('color: red')
-            self.msg_1.setText('MODELLER not found')
-
     def enterEvent(self, QEvent):
         file = open('info')
         infoFile = json.load(file)
@@ -185,7 +174,7 @@ class OptimizeModel(QMainWindow, tpl_optimize_model.Ui_Form):
 
     def optimize_backBone(self):
         self.optBackBoneBut.setText('Processing...')
-        modeller_path = self.get_modeller_path()
+        modeller_path = self.config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
         try:
             from modeller import environ, selection, physical

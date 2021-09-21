@@ -3,7 +3,6 @@ import sys
 import re
 import json
 import random
-from winreg import *
 import threading
 import bs4
 import urllib
@@ -17,7 +16,7 @@ from PyQt5.QtCore import QObject
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QMainWindow, QApplication, QHeaderView, QMenu
 import tpl_search_seq
-# import prepare_temp
+import config
 import pd_model
 
 
@@ -116,39 +115,14 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
         self.workingDirShow.setText(path)
         self.dir_signal.emit(path)
 
-    def get_modeller_path(self):
-        try:
-            pyprotmodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyProtModel', 0, KEY_READ)
-            [pathVal, regtype] = (QueryValueEx(pyprotmodel_key, 'MODELLER_PATH'))
-            CloseKey(pyprotmodel_key)
-            return pathVal
-        except:
-            self.modellerConLable.setStyleSheet('color: red')
-            self.modellerConLable.setText('Not connected')
-
-    def set_modeller_path(self, p, v):
-        try:
-            keyVal = r"SOFTWARE\PyProtModel"
-            # create a key in reg if not exist
-            if not os.path.exists(keyVal):
-                CreateKey(HKEY_CURRENT_USER, keyVal)
-            # set modeller path
-            RegistryKey = OpenKey(HKEY_CURRENT_USER, r"SOFTWARE\PyProtModel", 0, KEY_WRITE)
-            SetValueEx(RegistryKey, "MODELLER_PATH", 0, REG_SZ, p)
-            # set modeller version
-            SetValueEx(RegistryKey, "MODELLER_VERSION", 0, REG_SZ, v)
-            CloseKey(RegistryKey)
-        except Exception as er:
-            print(er)
-
     def connect_modeller(self):
         def read_path_from_reg():
             try:
-                modeller_Path = os.path.abspath(os.path.join(self.get_modeller_path().strip(), 'modlib'))
-                self.modellerPath.setText(self.get_modeller_path().strip())
+                modeller_Path = os.path.abspath(os.path.join(config.Config.get_modeller_path().strip(), 'modlib'))
+                self.modellerPath.setText(config.Config.get_modeller_path().strip())
                 sys.path.insert(0, modeller_Path)
                 from modeller import info
-                self.set_modeller_path(self.modellerPath.text().strip(), info.version)
+                config.Config.set_modeller_path(self.modellerPath.text().strip(), info.version)
                 self.modellerConLable.setStyleSheet('color: green')
                 self.modellerConLable.setText('Connected')
             except:
@@ -161,7 +135,7 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
             sys.path.append(os.path.join(modeller_Path, 'modlib'))
             try:
                 from modeller import info
-                self.set_modeller_path(modeller_Path, info.version)
+                config.Config.set_modeller_path(modeller_Path, info.version)
                 self.modellerConLable.setStyleSheet('color: green')
                 self.modellerConLable.setText('Connected')
             except ModuleNotFoundError:

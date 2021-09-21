@@ -3,11 +3,11 @@ import sys
 import re
 import json
 import threading
-from winreg import *
 import collections
 from Bio.PDB.PDBParser import PDBParser
 from PyQt5.QtWidgets import QMainWindow, QApplication
 import tpl_repair_temp
+import config
 
 
 class RepairTemp(QMainWindow, tpl_repair_temp.Ui_Form):
@@ -72,16 +72,6 @@ class RepairTemp(QMainWindow, tpl_repair_temp.Ui_Form):
         self.repairBut.released.connect(self.get_values_th)
         # remove file
         self.rep_remove_file.released.connect(self.remove_rep_file)
-
-    def get_modeller_path(self):
-        try:
-            pyprotmodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyProtModel', 0, KEY_READ)
-            [pathVal, regtype] = (QueryValueEx(pyprotmodel_key, 'MODELLER_PATH'))
-            CloseKey(pyprotmodel_key)
-            return pathVal
-        except:
-            self.msgLabel.setStyleSheet('color: red')
-            self.msgLabel.setText('MODELLER not found')
 
     def enterEvent(self, QEvent):
         file = open('info')
@@ -324,7 +314,7 @@ class RepairTemp(QMainWindow, tpl_repair_temp.Ui_Form):
         self.repair_missing_atom()
 
     def repair_missing_atom(self):
-        modeller_path = self.get_modeller_path()
+        modeller_path = config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
         try:
             from modeller import environ

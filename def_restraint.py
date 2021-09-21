@@ -3,11 +3,11 @@ import sys
 import re
 import json
 import threading
-from winreg import *
 from Bio.PDB import PDBParser
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QMainWindow, QApplication
 import tpl_def_restraint
+import config
 
 
 class DefineRestraint(QMainWindow, tpl_def_restraint.Ui_Form):
@@ -142,16 +142,6 @@ class DefineRestraint(QMainWindow, tpl_def_restraint.Ui_Form):
         # apply & remove buttons
         self.applyBut.released.connect(self.get_value_th)
         self.removeBut.released.connect(self.remove_pdb_file)
-
-    def get_modeller_path(self):
-        try:
-            pyprotmodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyProtModel', 0, KEY_READ)
-            [pathVal, regtype] = (QueryValueEx(pyprotmodel_key, 'MODELLER_PATH'))
-            CloseKey(pyprotmodel_key)
-            return pathVal
-        except:
-            self.msgLabel.setStyleSheet('color: red')
-            self.msgLabel.setText('MODELLER not found')
 
     def enterEvent(self, QEvent):
         file = open('info')
@@ -1266,7 +1256,7 @@ class DefineRestraint(QMainWindow, tpl_def_restraint.Ui_Form):
 
     def run_restraint(self):
         self.applyBut.setText('Processing...')
-        modeller_path = self.get_modeller_path()
+        modeller_path = config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
         try:
             from modeller import environ, alignment, log, selection, secondary_structure, physical, forms, features

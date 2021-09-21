@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-from winreg import *
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QMainWindow, QApplication
 import tpl_tabs
@@ -16,6 +15,7 @@ import build_model
 import optimize_model
 import evaluate_model
 import refine_loop
+import config
 
 
 class PyProtModel(QMainWindow, tpl_tabs.Ui_Form):
@@ -29,7 +29,7 @@ class PyProtModel(QMainWindow, tpl_tabs.Ui_Form):
         self.setFixedSize(979, 605)
         #
         try:
-            modelVer = self.get_modeller_version()
+            modelVer = config.Config.get_modeller_version()
             self.setWindowTitle('PyProtModel V.1 (' + modelVer + ')')
         except:
             self.setWindowTitle('PyProtModel V.1')

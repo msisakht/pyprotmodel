@@ -3,7 +3,6 @@ import sys
 import math
 import json
 import collections
-from winreg import *
 from Bio.SeqIO.PirIO import PirIterator
 from Bio.PDB import PDBParser, PPBuilder
 import matplotlib.pyplot as plt
@@ -14,6 +13,7 @@ import pandas as pd
 from PyQt5.QtWidgets import QMainWindow, QApplication, QColorDialog, QHeaderView
 import tpl_evaluate_model
 import pd_model
+import config
 
 
 class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
@@ -93,16 +93,6 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
         #
         self.saveCsvBut.released.connect(self.save_outlier_csv)
         self.removeBut.released.connect(self.remove_pdb_file)
-
-    def get_modeller_path(self):
-        try:
-            pyprotmodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyProtModel', 0, KEY_READ)
-            [pathVal, regtype] = (QueryValueEx(pyprotmodel_key, 'MODELLER_PATH'))
-            CloseKey(pyprotmodel_key)
-            return pathVal
-        except:
-            self.msg.setStyleSheet('color: red')
-            self.msg.setText('MODELLER not found')
 
     def enterEvent(self, QEvent):
         file = open('info')
@@ -219,7 +209,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
         self.zscore.setText('')
         QApplication.processEvents()
         plt_dic = {}
-        modeller_path = self.get_modeller_path()
+        modeller_path = config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
         try:
             from modeller import log, environ, alignment, selection

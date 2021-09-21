@@ -3,12 +3,12 @@ import sys
 import json
 import shutil
 import threading
-from winreg import *
 import pandas as pd
 from Bio.PDB import PDBParser
 from PyQt5.QtWidgets import QMainWindow, QApplication, QHeaderView
 import pd_model
 import tpl_refine_loop
+import config
 
 
 class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
@@ -52,16 +52,6 @@ class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
         self.saveCsvBut.released.connect(self.save_result_csv)
         #
         self.refineBut.released.connect(self.refine_loop_th)
-
-    def get_modeller_path(self):
-        try:
-            pyprotmodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyProtModel', 0, KEY_READ)
-            [pathVal, regtype] = (QueryValueEx(pyprotmodel_key, 'MODELLER_PATH'))
-            CloseKey(pyprotmodel_key)
-            return pathVal
-        except:
-            self.msg.setStyleSheet('color: red')
-            self.msg.setText('MODELLER not found')
 
     def enterEvent(self, QEvent):
         file = open('info')
@@ -194,7 +184,7 @@ class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
 
     def refine_loop(self):
         self.refineBut.setText('Processing...')
-        modeller_path = self.get_modeller_path()
+        modeller_path = config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
         fileL_before = [i for i in os.listdir(os.getcwd())]
         try:

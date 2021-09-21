@@ -2,7 +2,6 @@ import os
 import re
 import sys
 import json
-from winreg import *
 import threading
 import bs4
 import requests
@@ -13,6 +12,7 @@ from Bio.PDB import PDBParser
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
 import tpl_align_temp
 import view_align
+import config
 
 
 class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
@@ -156,16 +156,6 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
         self.viewAlign.released.connect(self.view_align)
         # remove file
         self.ali_remove_file.released.connect(self.remove_ali_file)
-
-    def get_modeller_path(self):
-        try:
-            pyprotmodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyProtModel', 0, KEY_READ)
-            [pathVal, regtype] = (QueryValueEx(pyprotmodel_key, 'MODELLER_PATH'))
-            CloseKey(pyprotmodel_key)
-            return pathVal
-        except:
-            self.msgLabel2.setStyleSheet('color: red')
-            self.msgLabel2.setText('MODELLER not found')
 
     def enterEvent(self, QEvent):
         file = open('info')
@@ -547,7 +537,7 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
             target = os.path.join(self.path, self.seq.currentText())
         if len(self.ali_file) > 0:
             target = self.ali_file
-        modeller_path = self.get_modeller_path()
+        modeller_path = config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
         try:
             from modeller import log, environ, alignment, model

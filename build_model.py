@@ -3,7 +3,6 @@ import sys
 import re
 import json
 import threading
-from winreg import *
 import pandas as pd
 import shutil
 from Bio.SeqIO.PirIO import PirIterator
@@ -13,6 +12,7 @@ from PyQt5 import QtGui
 from PyQt5.QtWidgets import QMainWindow, QApplication, QHeaderView
 import pd_model
 import tpl_build_model
+import config
 
 
 class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
@@ -88,16 +88,6 @@ class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
         self.downLibBut.released.connect(self.download_libs)
         # build model & remove buttons
         self.buildBut.released.connect(self.build_model_th)
-
-    def get_modeller_path(self):
-        try:
-            pyprotmodel_key = OpenKey(HKEY_CURRENT_USER, r'SOFTWARE\PyProtModel', 0, KEY_READ)
-            [pathVal, regtype] = (QueryValueEx(pyprotmodel_key, 'MODELLER_PATH'))
-            CloseKey(pyprotmodel_key)
-            return pathVal
-        except:
-            self.msgLabel.setStyleSheet('color: red')
-            self.msgLabel.setText('MODELLER not found')
 
     def enterEvent(self, QEvent):
         file = open('info')
@@ -175,7 +165,7 @@ class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
                  ['soap_protein_od.hdf5', 'SOAP-Protein']]
         no_soap = []
         for i in soapL:
-            if os.path.exists(os.path.join(self.get_modeller_path(), i[0])):
+            if os.path.exists(os.path.join(config.Config.get_modeller_path(), i[0])):
                 pass
             else:
                 no_soap.append(i[1])
@@ -194,7 +184,7 @@ class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
                     self.msgLabel.setStyleSheet('color: black')
                     self.msgLabel.setText('Downloading %s . . .' % (i[1]))
                     QApplication.processEvents()
-                    wget.download('https://salilab.org/SOAP/' + i[0], self.get_modeller_path(), bar=bar_adaptive)
+                    wget.download('https://salilab.org/SOAP/' + i[0], config.Config.get_modeller_path(), bar=bar_adaptive)
             except Exception as er:
                 self.msgLabel.setStyleSheet('color: red')
                 self.msgLabel.setText('Error')
@@ -370,7 +360,7 @@ class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
 
     def build_model(self):
         self.buildBut.setText('Processing...')
-        modeller_path = self.get_modeller_path()
+        modeller_path = config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
         try:
             from modeller import environ, soap_protein_od, soap_pp, soap_loop, soap_peptide
