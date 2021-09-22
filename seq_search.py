@@ -173,7 +173,7 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
 
     def eventFilter(self, source, event):
         try:
-            if (event.type() == QtCore.QEvent.ContextMenu and source is self.accResult):
+            if event.type() == QtCore.QEvent.ContextMenu and source is self.accResult:
                 menu = QMenu()
                 cp_acc = menu.addAction('Copy accession number(s)')
                 show_seq = menu.addAction('Show sequence')

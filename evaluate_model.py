@@ -385,22 +385,22 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
                 # General variable for the background preferences
                 rama_pref_files = {
                     'General': {
-                        'file': os.path.join(os.getcwd(), 'data\\pref_general.data'),
+                        'file': os.path.join(os.getcwd(), 'data', 'pref_general.data'),
                         'cmap': colors.ListedColormap(['#FFFFFF', '#B3E8FF', '#7FD9FF']),
                         'bounds': [0, 0.0005, 0.02, 1],
                     },
                     'Glycine': {
-                        'file': os.path.join(os.getcwd(), 'data\\pref_glycine.data'),
+                        'file': os.path.join(os.getcwd(), 'data', 'pref_glycine.data'),
                         'cmap': colors.ListedColormap(['#FFFFFF', '#FFE8C5', '#FFCC7F']),
                         'bounds': [0, 0.002, 0.02, 1],
                     },
                     'Proline': {
-                        'file': os.path.join(os.getcwd(), 'data\\pref_proline.data'),
+                        'file': os.path.join(os.getcwd(), 'data', 'pref_proline.data'),
                         'cmap': colors.ListedColormap(['#FFFFFF', '#D0FFC5', '#7FFF8C']),
                         'bounds': [0, 0.002, 0.02, 1],
                     },
                     'pre-Proline': {
-                        'file': os.path.join(os.getcwd(), 'data\\pref_preproline.data'),
+                        'file': os.path.join(os.getcwd(), 'data', 'pref_preproline.data'),
                         'cmap': colors.ListedColormap(['#FFFFFF', '#B3E8FF', '#7FD9FF']),
                         'bounds': [0, 0.002, 0.02, 1],
                     }

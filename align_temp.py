@@ -438,7 +438,6 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
         t = threading.Thread(target=self.align_get_values)
         t.start()
         self.alignBut.setEnabled(False)
-        self.msgLabel2.setText('')
 
     def align_get_values(self, *args):
         try:
@@ -530,7 +529,8 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
             pass
 
     def run_alignment(self):
-        self.alignBut.setText('Processing...')
+        self.msgLabel2.setStyleSheet('color: black')
+        self.msgLabel2.setText('Processing...')
         if self.seq.currentText() == 'Select':
             target = os.path.join(self.path, self.infoFile['Target'])
         if self.seq.currentText() != 'Select':
@@ -620,17 +620,14 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
 
             self.msgLabel2.setStyleSheet('color: green')
             self.msgLabel2.setText('Finished')
-            self.alignBut.setText('Align')
             self.alignBut.setEnabled(True)
         except ModuleNotFoundError:
             self.msgLabel2.setStyleSheet('color: red')
             self.msgLabel2.setText('MODELLER not found')
-            self.alignBut.setText('Align')
             self.alignBut.setEnabled(True)
         except Exception as er:
             self.msgLabel2.setStyleSheet('color: red')
             self.msgLabel2.setText('Error')
-            self.alignBut.setText('Align')
             self.alignBut.setEnabled(True)
             pass
 

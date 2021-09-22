@@ -8,6 +8,7 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import threading
 import requests
+import fileinput
 import bs4
 from Bio import SearchIO
 from Bio import SeqIO
@@ -28,6 +29,7 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
 
     blast_fileL = []
     pdbL = []
+    c_id = {}
     pdb_index = set()
 
     def __init__(self):
@@ -40,6 +42,7 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
             pass
         # blast files
         self.blastFile.addItems([i for i in os.listdir(self.path) if os.path.isfile(os.path.join(self.path, i)) and i.endswith('.blast')])
+        self.blastFile.activated.connect(self.get_templates)
         # custom ids
         self.pdb_selected.textEdited.connect(self.custom_id)
         # show templates
@@ -278,7 +281,8 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
                     if os.path.exists(os.path.join(self.path, i + '.pdb')):
                         pass
                     else:
-                        self.downloadBut.setText('Downloading ' + str(n + 1) + '/' + str(len(u_code)))
+                        self.msgLabel.setStyleSheet('color: black')
+                        self.msgLabel.setText('Downloading %s (%d/%d)' % (i + '.pdb ', n + 1, len(u_code)))
                         pdbdown.retrieve_pdb_file(pdb_code=i, pdir=self.path, file_format='pdb', overwrite=True, obsolete=False)
                         os.rename(os.path.join(self.path, 'pdb' + i.lower() + '.ent'), os.path.join(self.path, i + '.pdb'))
                         if not os.path.exists(os.path.join(self.path, i + '.pdb')):
@@ -287,10 +291,10 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
                     errorL.append(i)
                     continue
         if len(errorL) == 0:
-            self.downloadBut.setText('Download from RCSB')
+            self.msgLabel.setText('')
         else:
-            self.downloadBut.setText('Download from RCSB (' + str(len(errorL)) + ' Error)')
-            self.downloadBut.setToolTip('Error in downloading: ' + ', '.join(i for i in errorL))
+            self.msgLabel.setStyleSheet('color: red')
+            self.msgLabel.setText('Error in downloading: ' + ', '.join(i for i in errorL))
         self.downloadBut.setEnabled(True)
 
     def compare_template_th(self):
@@ -303,23 +307,25 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
     def compare_template(self):
         self.download_pdb()
         try:
-            self.compareBut.setText('Comparing templates . . .')
+            self.msgLabel.setStyleSheet('color: black')
+            self.msgLabel.setText('Comparing templates...')
             QApplication.processEvents()
-            pdbCode = []
             # get pdb file & chains
             p = PDBParser()
             for file in re.findall(r'(\w{4})', self.pdb_selected.text()):
                 if os.path.exists(os.path.join(self.path, file + '.pdb')):
-                    pdbCode.append(os.path.join(self.path, file + '.pdb'))
+                    for i in self.pdbL:
+                        if file.lower() == i[1].lower():
+                            self.c_id[file] = str(i[2])
             # pdb to fasta
             seq = []
-            for file in pdbCode:
-                s = p.get_structure(os.path.join(self.path, file), os.path.join(self.path, file))
+            for k in self.c_id.keys():
+                s = p.get_structure(os.path.join(self.path, k + '.pdb'), os.path.join(self.path, k + '.pdb'))
                 st = set()
-                readPDB = open(os.path.join(self.path, file), "rU")
+                readPDB = open(os.path.join(self.path, k + '.pdb'), "rU")
                 for record in SeqIO.parse(readPDB, "pdb-seqres"):
                     st.add(record.seq)
-                seq.append(['>' + os.path.splitext(os.path.basename(file))[0] + '\n' + ''.join([str(i) for i in st])])
+                seq.append(['>' + k + '\n' + ''.join([str(i) for i in st])])
             # add target seq
             t_seq_file = os.path.join(self.path, self.s.group(1) + '.pir')
             if os.path.exists(t_seq_file):
@@ -351,11 +357,12 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
             # run clustalo
             run_clustalo.runClustalO.runclaustalo(params=params_omega)
             run_clustalo.runClustalO.getResult(self.s.group(1))
-            self.compareBut.setText('Compare selected templates')
+            self.msgLabel.setText('')
             self.compareBut.setEnabled(True)
             self.viewBut.setVisible(True)
         except Exception as er:
-            self.compareBut.setText('Compare selected templates (Error)')
+            self.msgLabel.setStyleSheet('color: red')
+            self.msgLabel.setText('Error in comparing templates')
             self.compareBut.setEnabled(True)
             QApplication.processEvents()
             pass
@@ -398,7 +405,11 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
         # draw plot
         try:
             dnd_file = [i for i in os.listdir(self.path) if i.endswith('.dnd')]
-            if len(dnd_file):
+            if len(dnd_file) > 0:
+                for k, v in self.c_id.items():
+                    with fileinput.FileInput(os.path.join(self.path, dnd_file[0]), inplace=True) as f:
+                            for line in f:
+                                print(line.replace(k, k + '_' + v))
                 fig, ax = plt.subplots()
                 ax.spines['right'].set_visible(False)
                 ax.spines['top'].set_visible(False)
@@ -407,8 +418,9 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
                 tree = Phylo.read(os.path.join(self.path, dnd_file[0]), 'newick')
                 Phylo.draw(tree, axes=ax)
                 plt.show()
-        except:
+        except Exception as er:
             self.viewBut.setText('View comparing result (Error)')
+            print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))
             pass
 
 
