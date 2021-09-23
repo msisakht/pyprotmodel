@@ -266,8 +266,7 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
         return list(custom_ids)
 
     def download_pdb_th(self):
-        self.download_th = threading.Thread(target=self.download_pdb)
-        self.download_th.start()
+        threading.Thread(target=self.download_pdb).start()
 
     def download_pdb(self):
         pdbdown = PDBList()
@@ -295,6 +294,28 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
         else:
             self.msgLabel.setStyleSheet('color: red')
             self.msgLabel.setText('Error in downloading: ' + ', '.join(i for i in errorL))
+        # get c_id resolution data
+        if len(self.custom_id()) > 0:
+            url = "https://data.rcsb.org/graphql"
+            query = """{entries(entry_ids: [""" + ', '.join(['"' + i + '"' for i in self.custom_id()]) + """]) {
+                                            rcsb_entry_info {
+                                              experimental_method
+                                              resolution_combined
+                                            }
+                                            struct {
+                                              title
+                                            }
+                                          }
+                                        }"""
+            req = requests.post(url, json={'query': query})
+            req_results = json.loads(req.content)
+            for n, i in enumerate(self.custom_id()):
+                resolution = req_results['data']['entries'][n]['rcsb_entry_info']['resolution_combined']
+                if resolution:
+                    pass
+                else:
+                    resolution = ['']
+                self.pdbL.append([len(self.custom_id()) + n, i, resolution[0]])
         self.downloadBut.setEnabled(True)
 
     def compare_template_th(self):
