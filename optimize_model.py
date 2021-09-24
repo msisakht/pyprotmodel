@@ -167,13 +167,11 @@ class OptimizeModel(QMainWindow, tpl_optimize_model.Ui_Form):
             pass
 
     def optimize_backBone_th(self):
-        t = threading.Thread(target=self.optimize_backBone)
-        t.start()
+        threading.Thread(target=self.optimize_backBone).start()
         self.optBackBoneBut.setEnabled(False)
-        self.msg_1.setText('')
 
     def optimize_backBone(self):
-        self.optBackBoneBut.setText('Processing...')
+        self.msg_1.setText('Processing...')
         modeller_path = self.config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
         try:
@@ -357,17 +355,14 @@ class OptimizeModel(QMainWindow, tpl_optimize_model.Ui_Form):
                 self.model.addItems([i for i in os.listdir(self.path) if i.endswith('.pdb')])
                 self.msg_1.setStyleSheet('color: green')
                 self.msg_1.setText('Finished')
-                self.optBackBoneBut.setText('Optimize back bone')
                 self.optBackBoneBut.setEnabled(True)
         except ModuleNotFoundError:
             self.msg_1.setStyleSheet('color: red')
             self.msg_1.setText('MODELLER not found')
-            self.optBackBoneBut.setText('Optimize back bone')
             self.optBackBoneBut.setEnabled(True)
         except Exception as er:
             self.msg_1.setStyleSheet('color: red')
             self.msg_1.setText('Error')
-            self.optBackBoneBut.setText('Optimize back bone')
             self.optBackBoneBut.setEnabled(True)
             print(er)
             #print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))

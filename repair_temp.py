@@ -330,7 +330,8 @@ class RepairTemp(QMainWindow, tpl_repair_temp.Ui_Form):
                 env.io.hetatm = True
             if len(self.addedPdbChainResNumDic) == 0:
                 for n, file in enumerate(self.PDB.selectedItems()):
-                    self.repairBut.setText('Repairing %d/%d...' % (n + 1, len(self.PDB.selectedItems())))
+                    self.msgLabel.setStyleSheet('color: black')
+                    self.msgLabel.setText('Repairing %d/%d...' % (n + 1, len(self.PDB.selectedItems())))
                     self.mdl = complete_pdb(env, os.path.join(self.path, file.text()), special_patches=None,
                                             transfer_res_num=self.reNumberResL[0], model_segment=self.segmentResL[0],
                                             patch_default=self.patchTerminalL[0])
@@ -364,17 +365,14 @@ class RepairTemp(QMainWindow, tpl_repair_temp.Ui_Form):
             self.msgLabel.setStyleSheet('color: green')
             self.msgLabel.setText('Finished')
             QApplication.processEvents()
-            self.repairBut.setText('Repair')
             self.repairBut.setEnabled(True)
         except ModuleNotFoundError:
             self.msgLabel.setStyleSheet('color: red')
             self.msgLabel.setText('MODELLER not found')
-            self.repairBut.setText('Repair')
             self.repairBut.setEnabled(True)
         except Exception as er:
             self.msgLabel.setStyleSheet('color: red')
             self.msgLabel.setText('Error')
-            self.repairBut.setText('Repair')
             self.repairBut.setEnabled(True)
             print(er)
 

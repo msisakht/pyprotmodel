@@ -353,13 +353,11 @@ class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
             pass
 
     def build_model_th(self):
-        t = threading.Thread(target=self.build_model)
-        t.start()
+        threading.Thread(target=self.build_model).start()
         self.buildBut.setEnabled(False)
-        self.msgLabel.setText('')
 
     def build_model(self):
-        self.buildBut.setText('Processing...')
+        self.msgLabel.setText('Processing...')
         modeller_path = config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
         try:
@@ -907,7 +905,6 @@ class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
                     shutil.move(os.path.join(os.getcwd(), i), self.path)
             self.msgLabel.setStyleSheet('color: green')
             self.msgLabel.setText('Finished')
-            self.buildBut.setText('Build')
             self.buildBut.setEnabled(True)
             # display results
             self.group_model_result.show()
@@ -926,12 +923,10 @@ class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
         except ModuleNotFoundError:
             self.msgLabel.setStyleSheet('color: red')
             self.msgLabel.setText('MODELLER not found')
-            self.buildBut.setText('Build')
             self.buildBut.setEnabled(True)
         except Exception as er:
             self.msgLabel.setStyleSheet('color: red')
             self.msgLabel.setText('Error')
-            self.buildBut.setText('Build')
             self.buildBut.setEnabled(True)
             #print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))
             pass

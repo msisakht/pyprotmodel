@@ -190,28 +190,31 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
 
     def get_seq(self):
         try:
+            self.pir_errorL = []
             self.seqL = []
             # entered seq
             enter_seq = self.seq_ali.toPlainText().strip()
-            if len(enter_seq.split('>')) == 1:
-                self.seqL.append(['your_seq', enter_seq.split('>')[0]])
-            for n, s in enumerate(enter_seq.split('>')):
-                seqs = s.split('\n')
-                iden = re.findall(r'[\w\d]+', seqs[0])
-                if len(iden) == 0:
-                    iden = 'your_seq'
-                elif len(iden) == 1:
-                    iden = iden[0]
-                elif len(iden) > 1:
-                    iden = iden[0] + '_' + iden[1]
-                seq = ''.join(i for i in seqs[1:])
-                if len(seq) > 0:
-                    self.seqL.append([iden, seq])
+            if len(enter_seq.strip()) > 0:
+                if len(enter_seq.split('>')) == 1:
+                    self.seqL.append(['your_seq', enter_seq.split('>')[0]])
+                for n, s in enumerate(enter_seq.split('>')):
+                    seqs = s.split('\n')
+                    iden = re.findall(r'[\w\d]+', seqs[0])
+                    if len(iden) == 0:
+                        iden = 'your_seq'
+                    elif len(iden) == 1:
+                        iden = iden[0]
+                    elif len(iden) > 1:
+                        iden = iden[0] + '_' + iden[1]
+                    seq = ''.join(i for i in seqs[1:])
+                    if len(seq) > 0:
+                        self.seqL.append([iden, seq])
             # entered acc
             acc = re.findall(r'(\S{4,})', self.acc_ali.text().strip())
             if len(acc) > 0:
                 for n, i in enumerate(acc):
-                    self.gen_ali.setText('Retrieving %d/%d' % (n + 1, len(acc)))
+                    self.msg_gen.setStyleSheet('color: black')
+                    self.msg_gen.setText('Retrieving %d/%d' % (n + 1, len(acc)))
                     QApplication.processEvents()
                     self.get_seq_from_servers(i.upper())
             # generate PIR files
@@ -222,19 +225,14 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
                 self.seq.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.pir')])
                 self.msg_gen.setStyleSheet('color: green')
                 self.msg_gen.setText('Finished')
-                QApplication.processEvents()
-                if len(self.pir_errorL) == 0:
-                    self.gen_ali.setText('Generate')
-                else:
-                    self.gen_ali.setText('Generate (%d Error)' % (len(self.pir_errorL)))
-                    self.gen_ali.setToolTip('Error in: ' + ', '.join(i for i in self.pir_errorL))
-                self.gen_ali.setEnabled(True)
+            if len(self.pir_errorL) > 0:
+                self.msg_gen.setStyleSheet('color: red')
+                self.msg_gen.setText('Error in: ' + ', '.join(i for i in self.pir_errorL))
+            QApplication.processEvents()
+            self.gen_ali.setEnabled(True)
         except Exception as er:
-            if len(self.pir_errorL) == 0:
-                self.gen_ali.setText('Generate')
-            else:
-                self.gen_ali.setText('Generate (%d Error)' % (len(self.pir_errorL)))
-                self.gen_ali.setToolTip('Error in: ' + ', '.join(i for i in self.pir_errorL))
+            self.msg_gen.setStyleSheet('color: red')
+            self.msg_gen.setText('Error')
             self.gen_ali.setEnabled(True)
             pass
             # print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))
@@ -274,12 +272,13 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
                 # get pdb file
                 pdb = PDBList()
                 pdbfile = pdb.retrieve_pdb_file(acc, file_format='pdb', obsolete=False, pdir=self.path)
+                os.rename(os.path.join(self.path, 'pdb' + acc.lower() + '.ent'), os.path.join(self.path, acc + '.pdb'))
                 # get name
                 p = PDBParser()
                 s = p.get_structure(acc, os.path.join(self.path, acc + '.pdb'))
                 # pdb to fasta
                 st = set()
-                readPDB = open(pdbfile, "rU")
+                readPDB = open(os.path.join(self.path, acc + '.pdb'), "rU")
                 for record in SeqIO.parse(readPDB, "pdb-seqres"):
                     st.add(record.seq)
                 self.seqL.append([acc, ''.join([str(i) for i in st])])

@@ -202,12 +202,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
             pass
 
     def evaluate_energy(self):
-        self.evalBut.setText('Processing...')
         pylustrator.start()
-        self.evalBut.setEnabled(False)
-        self.msg.setText('')
-        self.zscore.setText('')
-        QApplication.processEvents()
         plt_dic = {}
         modeller_path = config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
@@ -215,6 +210,11 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
             from modeller import log, environ, alignment, selection
             from modeller.scripts import complete_pdb
             if self.alignFile.currentText() != 'Select':
+                self.evalBut.setEnabled(False)
+                self.zscore.setText('')
+                self.msg.setStyleSheet('color: black')
+                self.msg.setText('Processing...')
+                QApplication.processEvents()
                 saveName = ''
                 # get models
                 models = self.model.currentText()
@@ -309,12 +309,10 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
         except ModuleNotFoundError:
             self.msg.setStyleSheet('color: red')
             self.msg.setText('MODELLER not found')
-            self.evalBut.setText('Evaluate')
             self.evalBut.setEnabled(True)
         except Exception as er:
             self.msg.setStyleSheet('color: red')
             self.msg.setText('Error')
-            self.evalBut.setText('Evaluate')
             self.evalBut.setEnabled(True)
             # print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))
             print(er)

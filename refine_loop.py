@@ -177,13 +177,11 @@ class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
             f.truncate()
 
     def refine_loop_th(self):
-        t = threading.Thread(target=self.refine_loop)
-        t.start()
+        threading.Thread(target=self.refine_loop).start()
         self.refineBut.setEnabled(False)
-        self.msg.setText('')
 
     def refine_loop(self):
-        self.refineBut.setText('Processing...')
+        self.msg.setText('Processing...')
         modeller_path = config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
         fileL_before = [i for i in os.listdir(os.getcwd())]
@@ -268,7 +266,6 @@ class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
                     shutil.move(os.path.join(os.getcwd(), i), self.path)
             self.msg.setStyleSheet('color: green')
             self.msg.setText('Finished')
-            self.refineBut.setText('Refine')
             self.refineBut.setEnabled(True)
             # display results
             self.group_loop_result.show()
@@ -287,12 +284,10 @@ class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
         except ModuleNotFoundError:
             self.msg.setStyleSheet('color: red')
             self.msg.setText('MODELLER not found')
-            self.refineBut.setText('Refine')
             self.refineBut.setEnabled(True)
         except Exception as er:
             self.msg.setStyleSheet('color: red')
             self.msg.setText('Error')
-            self.refineBut.setText('Refine')
             self.refineBut.setEnabled(True)
             # print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))
             print(er)

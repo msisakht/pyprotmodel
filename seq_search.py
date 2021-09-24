@@ -229,7 +229,7 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
                                                   'Similarity': [], 'Identity': [], 'QMEAN': [], 'Q_Norm': [],
                                                   'Length': [], 'From': [], 'To': []})
         try:
-            self.searchBut.setText('Searching . . .')
+            self.searchBut.setText('Searchin...')
             s = re.findall(r'[A-Z\d\.]{4,}', self.search.text().upper())
             acL = list(set(s))
             if self.searchType.currentText() == 'Keywords':
