@@ -138,7 +138,8 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
                 config.Config.set_modeller_path(modeller_Path, info.version)
                 self.modellerConLable.setStyleSheet('color: green')
                 self.modellerConLable.setText('Connected')
-            except ModuleNotFoundError:
+            except ModuleNotFoundError as er:
+                print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))
                 read_path_from_reg()
         else:
             read_path_from_reg()
