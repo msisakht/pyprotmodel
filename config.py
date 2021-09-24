@@ -1,5 +1,6 @@
 import os
 import platform
+from subprocess import Popen
 import seq_search
 if platform.system() == 'Windows':
     from winreg import *
@@ -37,6 +38,6 @@ class Config():
             elif platform.system() == 'Linux':
                 os.system("echo 'export MODELLER_PATH=\"%s\"' >> ~/.bashrc" % p)
                 os.system("echo 'export MODELLER_VERSION=\"%s\"' >> ~/.bashrc" % v)
-                # Popen("source ~/.bashrc", shell=True, executable="/usr/bin/bash")
+                Popen("source ~/.bashrc", shell=True, executable="/usr/bin/bash")
         except Exception as er:
             print(er)
