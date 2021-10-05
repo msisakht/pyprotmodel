@@ -2,10 +2,11 @@ import os
 import sys
 import re
 import json
+import shutil
 import threading
 import collections
 from Bio.PDB.PDBParser import PDBParser
-from PyQt5.QtWidgets import QMainWindow, QApplication
+from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
 import tpl_repair_temp
 import config
 
@@ -41,6 +42,8 @@ class RepairTemp(QMainWindow, tpl_repair_temp.Ui_Form):
         # pdb files
         self.PDB.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
         self.PDB.clicked.connect(self.get_pdb_chain)
+        # browse pdb files
+        self.browsePDB.released.connect(self.browse_pdb_th)
         # renumber res
         self.reNumberRes.addItems([i for i in self.YesNoL])
         self.reNumberRes.setCurrentIndex(1)
@@ -80,16 +83,24 @@ class RepairTemp(QMainWindow, tpl_repair_temp.Ui_Form):
         self.path = path
         #
         pdb_files = []
-        aln_files = []
         for i in os.listdir(self.path):
             if i.endswith('.pdb') and i not in pdb_files:
                 pdb_files.append(i)
-            if i.endswith('.aln') and i not in aln_files:
-                aln_files.append(i)
         while self.pdb_fileL != pdb_files:
             self.PDB.clear()
             self.PDB.addItems([os.path.basename(i) for i in os.listdir(path) if i.endswith('.pdb')])
             self.pdb_fileL = pdb_files
+
+    def browse_pdb_th(self):
+        threading.Thread(target=self.browse_pdb).start()
+
+    def browse_pdb(self):
+        user_pdb = QFileDialog.getOpenFileNames()[0]
+        if user_pdb:
+            for file in user_pdb:
+                shutil.copy(file, self.path)
+            self.PDB.clear()
+            self.PDB.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
 
     def segment_res(self):
         if self.segmentRes.currentText() == 'Yes':

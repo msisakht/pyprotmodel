@@ -2,10 +2,11 @@ import os
 import sys
 import re
 import json
+import shutil
 import threading
 from Bio.PDB import PDBParser
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QMainWindow, QApplication
+from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
 import tpl_def_restraint
 import config
 
@@ -45,6 +46,7 @@ class DefineRestraint(QMainWindow, tpl_def_restraint.Ui_Form):
         self.setupUi(self)
         self.PDBFile.addItems([i for i in os.listdir(self.path) if i.endswith('pdb')])
         self.PDBFile.clicked.connect(self.res_from_to)
+        self.browseModel.released.connect(self.browse_model_th)
         # add residue range
         self.addBut.released.connect(self.add_residue)
         # min residue range
@@ -164,6 +166,17 @@ class DefineRestraint(QMainWindow, tpl_def_restraint.Ui_Form):
             self.alignment.clear()
             self.alignment.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.aln')])
             self.aln_fileL = aln_files
+
+    def browse_model_th(self):
+        threading.Thread(target=self.browse_model).start()
+
+    def browse_model(self):
+        user_pdb = QFileDialog.getOpenFileNames()[0]
+        if user_pdb:
+            for file in user_pdb:
+                shutil.copy(file, self.path)
+            self.PDBFile.clear()
+            self.PDBFile.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
 
     def res_from_to(self):
         self.resFrom.clear()

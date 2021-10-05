@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import shutil
 import threading
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
 import tpl_optimize_model
@@ -34,6 +35,7 @@ class OptimizeModel(QMainWindow, tpl_optimize_model.Ui_Form):
         self.setupUi(self)
         self.optimizeMethod.addItems(self.optimize_methodL)
         self.optimizeMethod.currentTextChanged.connect(self.check_method)
+        self.browseModel.released.connect(self.browse_model_th)
         #
         self.model.addItems([i for i in os.listdir(self.path) if i.endswith('.pdb')])
         self.model.setCurrentRow(0)
@@ -118,6 +120,17 @@ class OptimizeModel(QMainWindow, tpl_optimize_model.Ui_Form):
             self.restraint.clear()
             self.restraint.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.rsr')])
             self.rsr_fileL = rsr_files
+
+    def browse_model_th(self):
+        threading.Thread(target=self.browse_model).start()
+
+    def browse_model(self):
+        user_pdb = QFileDialog.getOpenFileNames()[0]
+        if user_pdb:
+            for file in user_pdb:
+                shutil.copy(file, self.path)
+            self.restraint.clear()
+            self.restraint.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
 
     def check_method(self):
         if self.optimizeMethod.currentText() == 'Conjugate gradients':

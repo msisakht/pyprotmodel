@@ -5,7 +5,7 @@ import shutil
 import threading
 import pandas as pd
 from Bio.PDB import PDBParser
-from PyQt5.QtWidgets import QMainWindow, QApplication, QHeaderView
+from PyQt5.QtWidgets import QMainWindow, QApplication, QHeaderView, QFileDialog
 import pd_model
 import tpl_refine_loop
 import config
@@ -18,6 +18,7 @@ class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
 
     pdb_fileL = []
     rsr_fileL = []
+    browse_pdb = False
     refLevelL = ['Very fast', 'Fast', 'Slow', 'Very slow', 'Slow large']
     addedResChainDic = {}
     assessL = ['GA341', 'DOPE', 'DOPE-HR', 'Normalized DOPE', 'SOAP_PP', 'SOAP-Loop', 'SOAP-Peptide', 'SOAP-Protein']
@@ -27,6 +28,7 @@ class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
         self.setupUi(self)
         self.model.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.pdb')])
         self.model.currentIndexChanged.connect(self.get_chain)
+        self.browseModel.released.connect(self.browse_model_th)
         #
         self.chainFrom.currentIndexChanged.connect(self.get_res_num)
         self.chainTo.currentIndexChanged.connect(self.get_res_num)
@@ -67,13 +69,27 @@ class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
             if i.endswith('.rsr') and i not in rsr_files:
                 rsr_files.append(i)
         while self.pdb_fileL != pdb_files:
-            self.model.clear()
-            self.model.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.pdb')])
-            self.pdb_fileL = pdb_files
+            if not self.browse_pdb:
+                self.model.clear()
+                self.model.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.pdb')])
+                self.pdb_fileL = pdb_files
         while self.rsr_fileL != rsr_files:
             self.restraint.clear()
             self.restraint.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.rsr')])
             self.rsr_fileL = rsr_files
+
+    def browse_model_th(self):
+        threading.Thread(target=self.browse_model).start()
+
+    def browse_model(self):
+        user_pdb = QFileDialog.getOpenFileNames()[0]
+        if user_pdb:
+            for file in user_pdb:
+                shutil.copy(file, self.path)
+            self.model.clear()
+            self.model.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+            self.model.setCurrentText(os.path.basename(user_pdb[0]))
+            self.browse_pdb = True
 
     def get_chain(self):
         chainL = []

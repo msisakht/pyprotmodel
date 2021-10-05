@@ -218,8 +218,7 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
 
     def search_uniprot_th(self):
         if len(self.search.text().strip()) != 0:
-            t = threading.Thread(target=self.search_uniprot)
-            t.start()
+            threading.Thread(target=self.search_uniprot).start()
             self.searchBut.setEnabled(False)
 
     def search_uniprot(self):

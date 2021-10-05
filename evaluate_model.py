@@ -2,6 +2,8 @@ import os
 import sys
 import math
 import json
+import shutil
+import threading
 import collections
 from Bio.SeqIO.PirIO import PirIterator
 from Bio.PDB import PDBParser, PPBuilder
@@ -10,7 +12,7 @@ from matplotlib import colors
 import pylustrator
 import numpy as np
 import pandas as pd
-from PyQt5.QtWidgets import QMainWindow, QApplication, QColorDialog, QHeaderView
+from PyQt5.QtWidgets import QMainWindow, QApplication, QColorDialog, QHeaderView, QFileDialog
 import tpl_evaluate_model
 import pd_model
 import config
@@ -36,6 +38,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
         super(self.__class__, self).__init__()
         self.setupUi(self)
         self.model.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.pdb')])
+        self.browseModel1.released.connect(self.browse_model_th)
         #
         self.alignFile.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.aln')])
         self.alignFile.currentIndexChanged.connect(self.get_template)
@@ -71,6 +74,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
         self.evalBut.released.connect(self.evaluate_energy)
         # ___ ramachandran ___
         self.rama_pdb.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+        self.browsModel2.released.connect(self.browse_model_th)
         #
         self.annot.addItems(['Residue', 'Residue + Residue number', 'Residue + Residue number + Chain id', 'None'])
         self.annot.setCurrentIndex(3)
@@ -117,6 +121,20 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
             self.alignFile.clear()
             self.alignFile.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.aln')])
             self.aln_fileL = aln_files
+
+    def browse_model_th(self):
+        threading.Thread(target=self.browse_model).start()
+
+    def browse_model(self):
+        user_pdb = QFileDialog.getOpenFileNames()[0]
+        if user_pdb:
+            for file in user_pdb:
+                shutil.copy(file, self.path)
+            self.model.clear()
+            self.rama_pdb.clear()
+            self.rama_pdb.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+            self.model.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+            self.model.setCurrentText(os.path.basename(user_pdb[0]))
 
     def get_template(self):
         self.templateDic = {}

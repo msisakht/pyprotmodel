@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import json
+import shutil
 import threading
 import bs4
 import requests
@@ -63,6 +64,8 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
         #
         self.gen_ali.released.connect(self.get_seq_th)
         # ____ alignment ____
+        # browse pdb files
+        self.browsePDB.released.connect(self.browse_pdb_th)
         self.alignPDB.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
         self.alignPDB.clicked.connect(self.align_get_pdb_chain)
         # add pdb/chain
@@ -178,6 +181,17 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
             self.seq.clear()
             self.seq.addItems(['Select'] + [i for i in os.listdir(path) if i.endswith('.pir')])
             self.pir_fileL = pir_files
+
+    def browse_pdb_th(self):
+        threading.Thread(target=self.browse_pdb).start()
+
+    def browse_pdb(self):
+        user_pdb = QFileDialog.getOpenFileNames()[0]
+        if user_pdb:
+            for file in user_pdb:
+                shutil.copy(file, self.path)
+            self.alignPDB.clear()
+            self.alignPDB.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
 
     def browse_ali_file(self):
         self.ali_file = QFileDialog.getOpenFileName()[0]
