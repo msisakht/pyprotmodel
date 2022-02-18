@@ -42,6 +42,9 @@ class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
         #
         self.nameModel.setText('refined')
         #
+        self.rmHetatm.addItems(['Yes', 'No'])
+        self.rmHetatm.setCurrentIndex(1)
+        #
         self.restraint.addItems(['Select'] + [i for i in os.listdir(self.path) if i.endswith('.rsr')])
         #
         self.assess.addItems(self.assessL)
@@ -82,14 +85,17 @@ class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
         threading.Thread(target=self.browse_model).start()
 
     def browse_model(self):
-        user_pdb = QFileDialog.getOpenFileNames()[0]
-        if user_pdb:
-            for file in user_pdb:
-                shutil.copy(file, self.path)
-            self.model.clear()
-            self.model.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
-            self.model.setCurrentText(os.path.basename(user_pdb[0]))
-            self.browse_pdb = True
+        try:
+            user_pdb = QFileDialog.getOpenFileNames()[0]
+            if user_pdb:
+                for file in user_pdb:
+                    shutil.copy(file, self.path)
+                self.model.clear()
+                self.model.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+                self.model.setCurrentText(os.path.basename(user_pdb[0]))
+                self.browse_pdb = True
+        except:
+            pass
 
     def get_chain(self):
         chainL = []
@@ -197,6 +203,7 @@ class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
         self.refineBut.setEnabled(False)
 
     def refine_loop(self):
+        self.msg.setStyleSheet('color: black')
         self.msg.setText('Processing...')
         modeller_path = config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
@@ -212,7 +219,11 @@ class RefineLoop(QMainWindow, tpl_refine_loop.Ui_Form):
             env.io.atom_files_directory = './:../atom_files'
             env.libs.topology.read(file='$(LIB)/top_heav.lib')
             env.libs.parameters.read(file='$(LIB)/par.lib')
-            # get refinemebt level
+            if self.rmHetatm.currentText() == 'Yes':
+                env.io.hetatm = False
+            else:
+                env.io.hetatm = True
+             # get refinemebt level
             md_level = refine.very_fast
             if self.refLevel.currentText() == 'Very fast':
                 md_level = refine.very_fast

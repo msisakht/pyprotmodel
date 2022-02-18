@@ -126,15 +126,18 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
         threading.Thread(target=self.browse_model).start()
 
     def browse_model(self):
-        user_pdb = QFileDialog.getOpenFileNames()[0]
-        if user_pdb:
-            for file in user_pdb:
-                shutil.copy(file, self.path)
-            self.model.clear()
-            self.rama_pdb.clear()
-            self.rama_pdb.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
-            self.model.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
-            self.model.setCurrentText(os.path.basename(user_pdb[0]))
+        try:
+            user_pdb = QFileDialog.getOpenFileNames()[0]
+            if user_pdb:
+                for file in user_pdb:
+                    shutil.copy(file, self.path)
+                self.model.clear()
+                self.rama_pdb.clear()
+                self.rama_pdb.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+                self.model.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+                self.model.setCurrentText(os.path.basename(user_pdb[0]))
+        except:
+            pass
 
     def get_template(self):
         self.templateDic = {}
@@ -367,7 +370,7 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
             self.msglabel_csv.setStyleSheet('color: #000000')
             self.msglabel_csv.setText('Saved')
             QApplication.processEvents()
-            pd.DataFrame.to_csv(self.result_df, 'Outliers.csv', index=False)
+            pd.DataFrame.to_csv(self.result_df, os.path.join(self.path, 'Outliers.csv'), index=False)
         except Exception as er:
             self.msglabel_csv.setStyleSheet('color: red')
             self.msglabel_csv.setText('Error')

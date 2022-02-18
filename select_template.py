@@ -212,7 +212,7 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
         pdb_data.close()
         # write csv file
         if self.saveCSV.isChecked():
-            csvFile = open(os.path.join('templates', id + '_templates.csv'), 'w', newline='')
+            csvFile = open(os.path.join(self.path, id + '_templates.csv'), 'w', newline='')
             csvWriter = csv.writer(csvFile, delimiter=',', )
             csvWriter.writerow(
                 ['Template', 'Method', 'Resolution', 'Length/Range', 'Identity ', 'E value', 'Bit score', 'Description'])

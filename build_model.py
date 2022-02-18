@@ -357,6 +357,7 @@ class BuildModel(QMainWindow, tpl_build_model.Ui_Form):
         self.buildBut.setEnabled(False)
 
     def build_model(self):
+        self.msgLabel.setStyleSheet('color: black')
         self.msgLabel.setText('Processing...')
         modeller_path = config.Config.get_modeller_path()
         sys.path.insert(0, modeller_path)
