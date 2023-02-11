@@ -851,15 +851,17 @@ class TempSearch(QMainWindow, tpl_search_temp.Ui_Form):
                 handleRead = SeqIO.read(handle, 'gb')
                 self.search_result[acc] = [handleRead.seq.__str__(), handleRead.name]
         elif len(acc) == 4:
-            # get pdb file
-            pdb = PDBList()
-            pdbfile = pdb.retrieve_pdb_file(acc, file_format='pdb', obsolete=False, pdir=path)
+            if not os.path.exists(os.path.join(path, acc + '.pdb')):
+                # get pdb file
+                pdb = PDBList()
+                pdbfile = pdb.retrieve_pdb_file(acc, file_format='pdb', obsolete=False, pdir=path)
+                os.rename(os.path.join(path, 'pdb' + acc.lower() + '.ent'), os.path.join(path, acc + '.pdb'))
             # get name
             p = PDBParser()
             s = p.get_structure(acc, os.path.join(path, acc + '.pdb'))
             # pdb to fasta
             st = set()
-            readPDB = open(pdbfile, "rU")
+            readPDB = open(os.path.join(path, acc + '.pdb'), "rU")
             for record in SeqIO.parse(readPDB, "pdb-seqres"):
                 st.add(record.seq)
             self.search_result[acc] = [''.join([str(i) for i in st]), s.header['name']]

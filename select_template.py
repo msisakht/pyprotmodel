@@ -38,10 +38,11 @@ class SelectTemp(QMainWindow, tpl_select_temp.Ui_Form):
         # check for blast files
         try:
             self.blast_fileL = [i for i in os.listdir(self.path) if i.endswith('.blast')]
+            self.blastFile.addItems([i for i in os.listdir(self.path) if
+                                     os.path.isfile(os.path.join(self.path, i)) and i.endswith('.blast')])
         except:
             pass
         # blast files
-        self.blastFile.addItems([i for i in os.listdir(self.path) if os.path.isfile(os.path.join(self.path, i)) and i.endswith('.blast')])
         self.blastFile.activated.connect(self.get_templates)
         # custom ids
         self.pdb_selected.textEdited.connect(self.custom_id)
