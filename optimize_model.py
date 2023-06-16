@@ -125,12 +125,15 @@ class OptimizeModel(QMainWindow, tpl_optimize_model.Ui_Form):
         threading.Thread(target=self.browse_model).start()
 
     def browse_model(self):
-        user_pdb = QFileDialog.getOpenFileNames()[0]
-        if user_pdb:
-            for file in user_pdb:
-                shutil.copy(file, self.path)
-            self.restraint.clear()
-            self.restraint.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+        try:
+            user_pdb = QFileDialog.getOpenFileNames()[0]
+            if user_pdb:
+                for file in user_pdb:
+                    shutil.copy(file, self.path)
+                self.restraint.clear()
+                self.restraint.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+        except:
+            pass
 
     def check_method(self):
         if self.optimizeMethod.currentText() == 'Conjugate gradients':

@@ -256,26 +256,14 @@ class AlignTemp(QMainWindow, tpl_align_temp.Ui_Form):
         try:
             if len(acc) >= 6:
                 try:
-                    url = 'https://www.uniprot.org/uniprot/' + acc + '.xml'
-                    req = requests.get(url)
-                    req.raise_for_status()
-                    soup = bs4.BeautifulSoup(req.content, 'lxml')
-                    accSwTr = []
-                    entrySw = soup.find_all('entry', {'dataset': 'Swiss-Prot'})
-                    entryTr = soup.find_all('entry', {'dataset': 'TrEMBL'})
-                    for i in entrySw:
-                        i['id'] = 'SwpTr'
-                    for i in entryTr:
-                        i['id'] = 'SwpTr'
-                    entrySwTr = soup.find_all('entry', id='SwpTr', limit=1)
-                    for ac in entrySwTr:
-                        accSwTr.append(ac.accession.getText())
-                    # accNum = accSwTr
-                    if len(accSwTr) > 0:
-                        for n in range(len(accSwTr)):
-                            sequence = entrySwTr[n].find_all('sequence')
-                            for seq in sequence:
-                                self.seqL.append([acc, seq.getText().strip()])
+                    headers = {'Accept': 'application/json', }
+                    params = {'query': acc, 'size': '1',
+                              'fields': 'protein_name,sequence', }
+                    res = requests.get('https://rest.uniprot.org/uniprotkb/search', headers=headers, params=params)
+                    resj = res.json()
+                    if len(resj['results']) > 0:
+                        for n in range(len(resj['results'])):
+                            self.seqL.append([acc, resj['results'][n]['sequence']['value']])
                 except:
                     # entrez search
                     Entrez.email = 'pymodel.v1@gmail.com'

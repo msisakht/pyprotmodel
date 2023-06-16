@@ -30,9 +30,9 @@ class PyProtModel(QMainWindow, tpl_tabs.Ui_Form):
         #
         try:
             modelVer = config.Config.get_modeller_version()
-            self.setWindowTitle('PyProtModel V.1 (' + modelVer + ')')
+            self.setWindowTitle('PyProtModel V.2 (' + modelVer + ')')
         except:
-            self.setWindowTitle('PyProtModel V.1')
+            self.setWindowTitle('PyProtModel V.2')
             pass
         self.setFixedSize(self.size())
         #
@@ -94,7 +94,7 @@ def welcome():
     os.system('color 4f')
     os.system('cls')
     print('DEPARTMENT OF MEDICAL BIOCHEMISTRY, FACULTY OF MEDICINE, SHIRAZ, IRAN')
-    print('PyProtModel Version 1.0')
+    print('PyProtModel Version 2.0')
     print(' _____       _____           _   __  __           _      _')
     print('|  __ \     |  __ \         | | |  \/  |         | |    | |')
     print('| |__) |   _| |__) | __ ___ | |_| \  / | ___   __| | ___| |')

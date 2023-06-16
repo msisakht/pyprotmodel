@@ -171,12 +171,15 @@ class DefineRestraint(QMainWindow, tpl_def_restraint.Ui_Form):
         threading.Thread(target=self.browse_model).start()
 
     def browse_model(self):
-        user_pdb = QFileDialog.getOpenFileNames()[0]
-        if user_pdb:
-            for file in user_pdb:
-                shutil.copy(file, self.path)
-            self.PDBFile.clear()
-            self.PDBFile.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+        try:
+            user_pdb = QFileDialog.getOpenFileNames()[0]
+            if user_pdb:
+                for file in user_pdb:
+                    shutil.copy(file, self.path)
+                self.PDBFile.clear()
+                self.PDBFile.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+        except:
+            pass
 
     def res_from_to(self):
         self.resFrom.clear()

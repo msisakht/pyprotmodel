@@ -95,12 +95,15 @@ class RepairTemp(QMainWindow, tpl_repair_temp.Ui_Form):
         threading.Thread(target=self.browse_pdb).start()
 
     def browse_pdb(self):
-        user_pdb = QFileDialog.getOpenFileNames()[0]
-        if user_pdb:
-            for file in user_pdb:
-                shutil.copy(file, self.path)
-            self.PDB.clear()
-            self.PDB.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+        try:
+            user_pdb = QFileDialog.getOpenFileNames()[0]
+            if user_pdb:
+                for file in user_pdb:
+                    shutil.copy(os.path.abspath(file), self.path)
+                self.PDB.clear()
+                self.PDB.addItems([os.path.basename(i) for i in os.listdir(self.path) if i.endswith('.pdb')])
+        except:
+            pass
 
     def segment_res(self):
         if self.segmentRes.currentText() == 'Yes':

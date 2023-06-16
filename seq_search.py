@@ -4,8 +4,7 @@ import re
 import json
 import random
 import threading
-import bs4
-import urllib
+import time
 import requests
 import collections
 import clipboard
@@ -288,36 +287,21 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
         # connect to uniprot
         try:
             if len(self.search.text().strip()) >= 2:
-                url = 'https://www.uniprot.org/uniprot/?query=' + query + '&limit=' + self.maxSearch.currentText().strip() + '&sort=score&format=xml'
-                req = requests.get(url)
-                req.raise_for_status()
-                soup = bs4.BeautifulSoup(req.content, 'lxml')
-                accSwTr = []
-                entrySw = soup.find_all('entry', {'dataset': 'Swiss-Prot'})
-                entryTr = soup.find_all('entry', {'dataset': 'TrEMBL'})
-                for i in entrySw:
-                    i['id'] = 'SwpTr'
-                for i in entryTr:
-                    i['id'] = 'SwpTr'
-                entrySwTr = soup.find_all('entry', id='SwpTr')
-                for ac in entrySwTr:
-                    accSwTr.append(ac.accession.getText())
-                # accNum = accSwTr
-                if len(accSwTr) > 0:
-                    for n in range(len(accSwTr)):
-                        sequence = entrySwTr[n].find_all('sequence')
-                        name = entrySwTr[n].find('protein')
-                        organism = entrySwTr[n].find('organism')
-                        for seq in sequence:
-                            try:
-                                organ_name = organism.contents[1].getText()
-                            except:
-                                organ_name = '-'
-                            attr = seq.attrs
-                            if 'length' in attr:
-                                self.search_result[query + ': ' + accSwTr[n] + ' - ' + name.fullname.getText().strip() + ' - (' +
-                                            attr['length'] + ' AA) - (' + organ_name + ')'] = [accSwTr[n], 
-                                            name.fullname.getText().strip(), seq.getText().strip(), attr['length'], len(sequence)]
+                headers = {'Accept': 'application/json', }
+                params = {'query': query, 'size': self.maxSearch.currentText().strip(),
+                          'fields': 'accession,protein_name,length,organism_name,sequence', }
+                res = requests.get('https://rest.uniprot.org/uniprotkb/search', headers=headers, params=params)
+                resj = res.json()
+                if len(resj['results']) > 0:
+                    for n in range(len(resj['results'])):
+                        accession = resj['results'][n]['primaryAccession']
+                        name = resj['results'][n]['proteinDescription']['recommendedName']['fullName']['value']
+                        length = resj['results'][n]['sequence']['length']
+                        organism = resj['results'][n]['organism']['commonName']
+                        sequence = resj['results'][n]['sequence']['value']
+                        self.search_result[query + ': ' + accession + ' - ' + name.strip() + ' - (' +
+                                    str(length) + ' AA) - (' + organism + ')'] = [accession,
+                                    name.strip(), sequence.strip(), length, len(sequence)]
         except requests.exceptions.ConnectionError:
             self.accResult.clear()
             self.accResult.addItems(['Connection error.'])
@@ -392,20 +376,57 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
             self.table_results.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
     def get_structure(self, id):
+        pdb_idsL = []
         to_url = []
+        interval = 3
+        from_db = 'UniProtKB_AC-ID'
+        to_db = 'PDB'
         # get pdb ids from uniprot
         try:
-            url = 'https://www.uniprot.org/uploadlists/'
-            params = {'from': 'ACC', 'to': 'PDB_ID', 'format': 'tab', 'query': id}
-            #
-            data = urllib.parse.urlencode(params).encode("utf-8")
-            request = urllib.request.Request(url, data)
-            contact = 'pymodel.v1@gmail.com'
-            request.add_header('User-Agent', 'Python %s' % contact)
-            response = urllib.request.urlopen(request)
-            results = response.read(200000)
-            pdb_idsL = [i[1].decode('utf-8') for i in [j.split() for j in results.splitlines()]][1:]
+            def submit_id_mapping(from_db, to_db, id):
+                API_URL = "https://rest.uniprot.org"
+                session = requests.Session()
+                request = session.post(f"{API_URL}/idmapping/run", data={"from": from_db, "to": to_db, "ids": id},)
+                request.raise_for_status()
+                return request.json()["jobId"]
 
+            def check_id_mapping_results_ready(job_id):
+                API_URL = "https://rest.uniprot.org"
+                session = requests.Session()
+                while True:
+                    request = session.get(f"{API_URL}/idmapping/status/{job_id}")
+                    request.raise_for_status()
+                    j = request.json()
+                    if "jobStatus" in j:
+                        if j["jobStatus"] == "RUNNING":
+                            print(f"Retrying in {interval}s")
+                            time.sleep(interval)
+                        else:
+                            raise Exception(j["jobStatus"])
+                    else:
+                        return bool(j["results"] or j["failedIds"])
+
+            def get_id_mapping_results_link(job_id):
+                API_URL = "https://rest.uniprot.org"
+                session = requests.Session()
+                url = f"{API_URL}/idmapping/details/{job_id}"
+                request = session.get(url)
+                request.raise_for_status()
+                return request.json()["redirectURL"]
+
+            def get_id_mapping_results(url):
+                session = requests.Session()
+                request = session.get(url)
+                request.raise_for_status()
+                return request.text.splitlines()
+
+            job_id = submit_id_mapping(from_db, to_db, id)
+            if check_id_mapping_results_ready(job_id):
+                link = get_id_mapping_results_link(job_id)
+                results = get_id_mapping_results(link)
+                data = json.loads(results[0])
+                results_dic = data["results"]
+                pdb_idsL = [result["to"] for result in results_dic]
             # get method, resolution and title of templates from rcsb
             if os.path.exists(os.path.join('../temp', 'pdb_data')):
                 pass

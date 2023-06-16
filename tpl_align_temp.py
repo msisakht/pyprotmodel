@@ -521,7 +521,7 @@ class Ui_Form(object):
         self.browsePDB.setText(_translate("Form", "Browse PDB files"))
         self.groupBox_2.setTitle(_translate("Form", "Sequence Preparation"))
         self.gen_ali.setText(_translate("Form", "Generate"))
-        self.label.setText(_translate("Form", "If you didn\'t use the PyModel to search for templates, please enter your sequences or accession numbers to generate the PIR files."))
+        self.label.setText(_translate("Form", "If you haven\'t utilized PyProtModel for template searching, kindly input your sequences or accession numbers to produce PIR files."))
         self.label_2.setText(_translate("Form", "Sequence:"))
         self.label_3.setToolTip(_translate("Form", "<html><head/><body><p>UniProt, NCBI or PDB accession numbers.</p></body></html>"))
         self.label_3.setText(_translate("Form", "Accession number(s):"))
