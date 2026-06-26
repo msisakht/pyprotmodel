@@ -341,291 +341,730 @@ class EvaluateModel(QMainWindow, tpl_evaluate_model.Ui_Form):
     # ______ ramachandran ______
 
     def display_outlier_format(self):
-        dic = collections.OrderedDict({})
+        dic = collections.OrderedDict()
+
         if self.display_outlier.currentText() == 'Outliers':
             dic = self.outlier_dic
             self.outlier_count_label.setText(str(len(dic['Model'])))
-        if self.display_outlier.currentText() == 'Number of outliers':
+
+        elif self.display_outlier.currentText() == 'Number of outliers':
             for k, v in self.countOutlier_dic.items():
-                if k == 'Model':
-                    dic[k] = v
-                if k in self.rama_types:
+                if k == 'Model' or k in self.rama_types:
                     dic[k] = v
             self.outlier_count_label.setText('')
-        if self.display_outlier.currentText() == 'Models with outlier':
+
+        elif self.display_outlier.currentText() == 'Models with outlier':
             dic = self.outlier_model_dic
             self.outlier_count_label.setText(str(len(dic['Model'])))
-        if self.display_outlier.currentText() == 'Models without outlier':
+
+        elif self.display_outlier.currentText() == 'Models without outlier':
             dic = self.allowed_dic
             self.outlier_count_label.setText(str(len(dic['Model'])))
+
         self.result_df = pd.DataFrame.from_dict(dic)
-        self.result_df.sort_values('Model', inplace=True)
-        self.result_df.sort_index(inplace=True)
+
+        if not self.result_df.empty and 'Model' in self.result_df.columns:
+            self.result_df.sort_values('Model', inplace=True)
+            self.result_df.reset_index(drop=True, inplace=True)
+
         qt_model = pd_model.PdModel(self.result_df)
         self.table_results.setModel(qt_model)
         self.table_results.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
+
     def save_outlier_csv(self):
         try:
+            if not hasattr(self, 'result_df') or self.result_df.empty:
+                self.msglabel_csv.setStyleSheet('color: red')
+                self.msglabel_csv.setText('No data to save')
+                return
+
             self.msglabel_csv.setStyleSheet('color: #000000')
-            self.msglabel_csv.setText('Saved')
+            self.msglabel_csv.setText('Saving...')
             QApplication.processEvents()
-            pd.DataFrame.to_csv(self.result_df, os.path.join(self.path, 'Outliers.csv'), index=False)
+
+            self.result_df.to_csv(
+                os.path.join(self.path, 'Outliers.csv'),
+                index=False
+            )
+
+            self.msglabel_csv.setStyleSheet('color: green')
+            self.msglabel_csv.setText('Saved')
+
         except Exception as er:
             self.msglabel_csv.setStyleSheet('color: red')
             self.msglabel_csv.setText('Error')
             print(er)
-            pass
+
 
     def evaluate_rama(self):
+        from matplotlib.lines import Line2D
+
         pylustrator.start()
+
         self.rama_types = []
-        rama_preferences = {}
-        self.outlier_dic = collections.OrderedDict({'Model': [], 'Type': [], 'Chain': [], 'Residue': [], 'Residue number': []})
-        self.countOutlier_dic = collections.OrderedDict({'Model': [], 'General': [], 'Glycine': [], 'Proline': [], 'pre-Proline': []})
+        self.outlier_dic = collections.OrderedDict({
+            'Model': [],
+            'Type': [],
+            'Chain': [],
+            'Residue': [],
+            'Residue number': []
+        })
+        self.countOutlier_dic = collections.OrderedDict({
+            'Model': [],
+            'General': [],
+            'Glycine': [],
+            'Proline': [],
+            'pre-Proline': []
+        })
         self.allowed_dic = collections.OrderedDict({'Model': []})
         self.outlier_model_dic = collections.OrderedDict({'Model': []})
 
-        if len(self.rama_pdb.selectedItems()) > 0:
-            self.msglabel_rama.setStyleSheet('color: #000000')
-            self.msglabel_rama.setText('Processing...')
-            QApplication.processEvents()
+        selected_pdb_files = self.rama_pdb.selectedItems()
 
-            try:
-                if self.rama_gen.isChecked():
-                    self.rama_types.append('General')
-                if self.rama_gly.isChecked():
-                    self.rama_types.append('Glycine')
-                if self.rama_pro.isChecked():
-                    self.rama_types.append('Proline')
-                if self.rama_prePro.isChecked():
-                    self.rama_types.append('pre-Proline')
+        if len(selected_pdb_files) == 0:
+            self.msglabel_rama.setStyleSheet('color: red')
+            self.msglabel_rama.setText('Select at least one PDB model')
+            return
 
-                # General variable for the background preferences
-                rama_pref_files = {
-                    'General': {
-                        'file': os.path.join(os.getcwd(), 'data', 'pref_general.data'),
-                        'cmap': colors.ListedColormap(['#FFFFFF', '#B3E8FF', '#7FD9FF']),
-                        'bounds': [0, 0.0005, 0.02, 1],
-                    },
-                    'Glycine': {
-                        'file': os.path.join(os.getcwd(), 'data', 'pref_glycine.data'),
-                        'cmap': colors.ListedColormap(['#FFFFFF', '#FFE8C5', '#FFCC7F']),
-                        'bounds': [0, 0.002, 0.02, 1],
-                    },
-                    'Proline': {
-                        'file': os.path.join(os.getcwd(), 'data', 'pref_proline.data'),
-                        'cmap': colors.ListedColormap(['#FFFFFF', '#D0FFC5', '#7FFF8C']),
-                        'bounds': [0, 0.002, 0.02, 1],
-                    },
-                    'pre-Proline': {
-                        'file': os.path.join(os.getcwd(), 'data', 'pref_preproline.data'),
-                        'cmap': colors.ListedColormap(['#FFFFFF', '#B3E8FF', '#7FD9FF']),
-                        'bounds': [0, 0.002, 0.02, 1],
-                    }
+        if self.rama_gen.isChecked():
+            self.rama_types.append('General')
+
+        if self.rama_gly.isChecked():
+            self.rama_types.append('Glycine')
+
+        if self.rama_pro.isChecked():
+            self.rama_types.append('Proline')
+
+        if self.rama_prePro.isChecked():
+            self.rama_types.append('pre-Proline')
+
+        if len(self.rama_types) == 0:
+            self.msglabel_rama.setStyleSheet('color: red')
+            self.msglabel_rama.setText('Select at least one residue category')
+            return
+
+        self.msglabel_rama.setStyleSheet('color: #000000')
+        self.msglabel_rama.setText('Processing...')
+        QApplication.processEvents()
+
+        try:
+            module_dir = os.path.dirname(os.path.abspath(__file__))
+
+            # Background map settings:
+            # White = disallowed region
+            # Light color = allowed region
+            # Dark color = favoured region
+            rama_pref_files = {
+                'General': {
+                    'file': os.path.join(module_dir, 'data', 'pref_general.data'),
+                    'cmap': colors.ListedColormap([
+                        '#FFFFFF',
+                        '#CBE8F6',
+                        '#67B7DD'
+                    ]),
+                    'bounds': [0, 0.0005, 0.02, 1]
+                },
+                'Glycine': {
+                    'file': os.path.join(module_dir, 'data', 'pref_glycine.data'),
+                    'cmap': colors.ListedColormap([
+                        '#FFFFFF',
+                        '#FCE1B0',
+                        '#F3AB4F'
+                    ]),
+                    'bounds': [0, 0.002, 0.02, 1]
+                },
+                'Proline': {
+                    'file': os.path.join(module_dir, 'data', 'pref_proline.data'),
+                    'cmap': colors.ListedColormap([
+                        '#FFFFFF',
+                        '#D8EDC9',
+                        '#72B85B'
+                    ]),
+                    'bounds': [0, 0.002, 0.02, 1]
+                },
+                'pre-Proline': {
+                    'file': os.path.join(module_dir, 'data', 'pref_preproline.data'),
+                    'cmap': colors.ListedColormap([
+                        '#FFFFFF',
+                        '#D6EAF8',
+                        '#6EAED4'
+                    ]),
+                    'bounds': [0, 0.002, 0.02, 1]
                 }
-                # get selected types
-                for k, v in rama_pref_files.items():
-                    if k in self.rama_types:
-                        rama_preferences[k] = v
-                # Read in the expected torsion angles
-                __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-                rama_pref_values = {}
-                for key, val in rama_preferences.items():
-                    rama_pref_values[key] = np.full((360, 360), 0, dtype=np.float64)
-                    with open(os.path.join(__location__, val['file'])) as fn:
-                        for line in fn:
-                            if not line.startswith('#'):
-                                # Preference file has values for every second position only
-                                rama_pref_values[key][int(float(line.split()[1])) + 180][
-                                    int(float(line.split()[0])) + 180] = float(
-                                    line.split()[2])
-                                rama_pref_values[key][int(float(line.split()[1])) + 179][
-                                    int(float(line.split()[0])) + 179] = float(
-                                    line.split()[2])
-                                rama_pref_values[key][int(float(line.split()[1])) + 179][
-                                    int(float(line.split()[0])) + 180] = float(
-                                    line.split()[2])
-                                rama_pref_values[key][int(float(line.split()[1])) + 180][
-                                    int(float(line.split()[0])) + 179] = float(
-                                    line.split()[2])
+            }
 
-                # Calculate the torsion angle of the inputs
-                def get_plot(n, file, save=False):
-                    aa_type = ''
-                    plt_dic = collections.OrderedDict()
-                    self.msglabel_rama.setStyleSheet('color: #000000')
-                    self.msglabel_rama.setText('Processing %s/%s...' % (str(n + 1), str(len(self.rama_pdb.selectedItems()))))
-                    QApplication.processEvents()
-                    #
-                    normals = {}
-                    outliers = {}
-                    for key, val in rama_preferences.items():
-                        normals[key] = {'x': [], 'y': []}
-                        outliers[key] = {'x': [], 'y': []}
-                    #
-                    structure = PDBParser().get_structure(file.text(), os.path.join(self.path, file.text()))
-                    for model in structure:
-                        for chain in model:
-                            polypeptides = PPBuilder().build_peptides(chain)
-                            for poly_index, poly in enumerate(polypeptides):
-                                phi_psi = poly.get_phi_psi_list()
-                                for res_index, residue in enumerate(poly):
-                                    res_name = '{}'.format(residue.resname)
-                                    res_num = residue.id[1]
-                                    phi, psi = phi_psi[res_index]
-                                    if phi and psi:
-                                        if str(poly[res_index + 1].resname) == 'PRO' and 'pre-Proline' in self.rama_types:
-                                            aa_type = 'pre-Proline'
-                                        elif res_name == 'PRO' and 'Proline' in self.rama_types:
-                                            aa_type = 'Proline'
-                                        elif res_name == 'GLY' and 'Glycine' in self.rama_types:
-                                            aa_type = 'Glycine'
-                                        else:
-                                            if 'General' in self.rama_types:
-                                                aa_type = 'General'
-                                        if aa_type.strip() != '' and rama_pref_values[aa_type][int(math.degrees(psi)) + 180][
-                                            int(math.degrees(phi)) + 180] < rama_preferences[aa_type]['bounds'][1]:
-                                            outliers[aa_type]['x'].append([math.degrees(phi), chain.id, res_name, res_num])
-                                            outliers[aa_type]['y'].append([math.degrees(psi), chain.id, res_name, res_num])
-                                            self.outlier_dic['Model'].append(file.text())
-                                            self.outlier_dic['Type'].append(aa_type)
-                                            self.outlier_dic['Chain'].append(chain.id)
-                                            self.outlier_dic['Residue'].append(res_name)
-                                            self.outlier_dic['Residue number'].append(res_num)
-                                        else:
-                                            if aa_type.strip() != '':
-                                                normals[aa_type]['x'].append([math.degrees(phi), chain.id, res_name, res_num])
-                                                normals[aa_type]['y'].append([math.degrees(psi), chain.id, res_name, res_num])
+            rama_preferences = {
+                key: value
+                for key, value in rama_pref_files.items()
+                if key in self.rama_types
+            }
 
-                    # get model with & without outlier
-                    if file.text() not in self.outlier_dic['Model'] and file.text() not in self.allowed_dic['Model']:
-                        self.allowed_dic['Model'].append(file.text())
-                    if file.text() in self.outlier_dic['Model'] and file.text() not in self.outlier_model_dic['Model']:
-                        self.outlier_model_dic['Model'].append(file.text())
-                    # count outliers
-                    self.countOutlier_dic['Model'].append(file.text())
-                    if 'General' in self.rama_types:
-                        self.countOutlier_dic['General'].append(len(outliers['General']['x']))
-                    if 'Glycine' in self.rama_types:
-                        self.countOutlier_dic['Glycine'].append(len(outliers['Glycine']['x']))
-                    if 'Proline' in self.rama_types:
-                        self.countOutlier_dic['Proline'].append(len(outliers['Proline']['x']))
-                    if 'pre-Proline' in self.rama_types:
-                        self.countOutlier_dic['pre-Proline'].append(len(outliers['pre-Proline']['x']))
-                    # Generate the plots
-                    if self.rama_save_as.currentText() != 'None':
-                        plt.figure(figsize=(int(self.figSizeX_rama.text()), int(self.figSizeY_rama.text())))
-                        for idx, (key, val) in enumerate(sorted(rama_preferences.items(), key=lambda x: x[0].lower())):
-                            annotatL = []
-                            if len(rama_preferences) == 4:
-                                plt.subplot(2, 2, idx + 1)
-                            if len(rama_preferences) == 3:
-                                plt.subplot(1, 3, idx + 1)
-                            if len(rama_preferences) == 2:
-                                plt.subplot(1, 2, idx + 1)
-                            if len(rama_preferences) == 1:
-                                plt.subplot(1, 1, 1)
-                            plt.title(key)
-                            plt.imshow(rama_pref_values[key], cmap=rama_preferences[key]['cmap'],
-                                       norm=colors.BoundaryNorm(rama_preferences[key]['bounds'], rama_preferences[key]['cmap'].N),
-                                       extent=(-180, 180, 180, -180))
-                            plt.scatter([i[0] for i in normals[key]['x']], [i[0] for i in normals[key]['y']])
-                            plt.scatter([i[0] for i in outliers[key]['x']], [i[0] for i in outliers[key]['y']], color='red')
-                            plt_dic[key + '_normal_x'] = [i[0] for i in normals[key]['x']]
-                            plt_dic[key + '_normal_y'] = [i[0] for i in normals[key]['y']]
-                            plt_dic[key + '_outlier_x'] = [i[0] for i in outliers[key]['x']]
-                            plt_dic[key + '_outlier_y'] = [i[0] for i in outliers[key]['y']]
-                            # plt_dic['preference_values'] = rama_pref_values[key]
-                            # add annotation
-                            for m, txt in enumerate(outliers[key]['x']):
-                                if self.annot.currentText() == 'Residue':
-                                    annotat = [i[2] for i in outliers[key]['x']][m]
-                                elif self.annot.currentText() == 'Residue + Residue number':
-                                    annotat = [i[2] + str(i[3]) for i in outliers[key]['x']][m]
-                                elif self.annot.currentText() == 'Residue + Residue number + Chain id':
-                                    annotat = [i[2] + str(i[3]) + '(' + i[1] + ')' for i in outliers[key]['x']][m]
+            # Read Ramachandran preference maps.
+            rama_pref_values = {}
+
+            for key, val in rama_preferences.items():
+                rama_pref_values[key] = np.zeros((360, 360), dtype=np.float64)
+
+                with open(val['file'], 'r') as fn:
+                    for line in fn:
+                        if line.startswith('#'):
+                            continue
+
+                        parts = line.split()
+
+                        if len(parts) < 3:
+                            continue
+
+                        phi_value = int(float(parts[0]))
+                        psi_value = int(float(parts[1]))
+                        preference_value = float(parts[2])
+
+                        phi_index = phi_value + 180
+                        psi_index = psi_value + 180
+
+                        valid_indices = [
+                            (psi_index, phi_index),
+                            (psi_index - 1, phi_index - 1),
+                            (psi_index - 1, phi_index),
+                            (psi_index, phi_index - 1)
+                        ]
+
+                        for row, col in valid_indices:
+                            if 0 <= row < 360 and 0 <= col < 360:
+                                rama_pref_values[key][row, col] = preference_value
+
+            def angle_to_preference_index(angle_in_radians):
+                """
+                Convert a torsion angle in radians to a valid preference-map index.
+                The map stores values over -180 to +179 degrees.
+                """
+                angle_in_degrees = int(math.degrees(angle_in_radians))
+                angle_in_degrees = int(np.clip(angle_in_degrees, -180, 179))
+                return angle_in_degrees + 180
+
+            def get_plot(model_number, pdb_item, save=False):
+                plt_dic = collections.OrderedDict()
+
+                self.msglabel_rama.setStyleSheet('color: #000000')
+                self.msglabel_rama.setText(
+                    'Processing %s/%s...' % (
+                        str(model_number + 1),
+                        str(len(selected_pdb_files))
+                    )
+                )
+                QApplication.processEvents()
+
+                normals = {}
+                outliers = {}
+
+                for key in rama_preferences:
+                    normals[key] = {'x': [], 'y': []}
+                    outliers[key] = {'x': [], 'y': []}
+
+                pdb_name = pdb_item.text()
+                pdb_path = os.path.join(self.path, pdb_name)
+
+                structure = PDBParser(QUIET=True).get_structure(
+                    pdb_name,
+                    pdb_path
+                )
+
+                for model in structure:
+                    for chain in model:
+                        polypeptides = PPBuilder().build_peptides(chain)
+
+                        for poly in polypeptides:
+                            phi_psi_list = poly.get_phi_psi_list()
+
+                            for residue_index, residue in enumerate(poly):
+                                phi, psi = phi_psi_list[residue_index]
+
+                                # Do not ignore valid 0° torsion angles.
+                                if phi is None or psi is None:
+                                    continue
+
+                                residue_name = residue.resname
+                                residue_number = residue.id[1]
+
+                                # Reset residue type at every residue.
+                                aa_type = None
+
+                                next_residue_is_proline = (
+                                    residue_index + 1 < len(poly)
+                                    and poly[residue_index + 1].resname == 'PRO'
+                                )
+
+                                if next_residue_is_proline and 'pre-Proline' in self.rama_types:
+                                    aa_type = 'pre-Proline'
+
+                                elif residue_name == 'PRO' and 'Proline' in self.rama_types:
+                                    aa_type = 'Proline'
+
+                                elif residue_name == 'GLY' and 'Glycine' in self.rama_types:
+                                    aa_type = 'Glycine'
+
+                                elif 'General' in self.rama_types:
+                                    aa_type = 'General'
+
+                                if aa_type is None:
+                                    continue
+
+                                phi_degree = math.degrees(phi)
+                                psi_degree = math.degrees(psi)
+
+                                phi_index = angle_to_preference_index(phi)
+                                psi_index = angle_to_preference_index(psi)
+
+                                preference_value = rama_pref_values[aa_type][
+                                    psi_index,
+                                    phi_index
+                                ]
+
+                                is_outlier = (
+                                    preference_value
+                                    < rama_preferences[aa_type]['bounds'][1]
+                                )
+
+                                residue_record_x = [
+                                    phi_degree,
+                                    chain.id,
+                                    residue_name,
+                                    residue_number
+                                ]
+                                residue_record_y = [
+                                    psi_degree,
+                                    chain.id,
+                                    residue_name,
+                                    residue_number
+                                ]
+
+                                if is_outlier:
+                                    outliers[aa_type]['x'].append(residue_record_x)
+                                    outliers[aa_type]['y'].append(residue_record_y)
+
+                                    self.outlier_dic['Model'].append(pdb_name)
+                                    self.outlier_dic['Type'].append(aa_type)
+                                    self.outlier_dic['Chain'].append(chain.id)
+                                    self.outlier_dic['Residue'].append(residue_name)
+                                    self.outlier_dic['Residue number'].append(
+                                        residue_number
+                                    )
+
                                 else:
-                                    annotat = ''
-                                plt.annotate(annotat, ([i[0] for i in outliers[key]['x']][m] + 2., [i[0] for i in outliers[key]['y']][m] + 2.))
-                                annotatL.append(annotat)
-                            plt_dic[key + '_outlier_annotation'] = annotatL
-                            plt.xlim([-180, 180])
-                            plt.ylim([-180, 180])
-                            plt.xticks([-180, 180])
-                            plt.yticks([-180, 180])
-                            plt.plot([-180, 180], [0, 0], color='black')
-                            plt.plot([0, 0], [-180, 180], color='black')
-                            plt.locator_params(axis='x', nbins=7)
-                            plt.xlabel(r'$\phi$')
-                            plt.ylabel(r'$\psi$')
-                            plt.grid()
-                        plt.tight_layout()
-                        # save plot to file
+                                    normals[aa_type]['x'].append(residue_record_x)
+                                    normals[aa_type]['y'].append(residue_record_y)
+
+                # Classify models with versus without outliers.
+                if (
+                    pdb_name not in self.outlier_dic['Model']
+                    and pdb_name not in self.allowed_dic['Model']
+                ):
+                    self.allowed_dic['Model'].append(pdb_name)
+
+                if (
+                    pdb_name in self.outlier_dic['Model']
+                    and pdb_name not in self.outlier_model_dic['Model']
+                ):
+                    self.outlier_model_dic['Model'].append(pdb_name)
+
+                # Count outliers for each category.
+                self.countOutlier_dic['Model'].append(pdb_name)
+
+                for rama_type in self.rama_types:
+                    self.countOutlier_dic[rama_type].append(
+                        len(outliers[rama_type]['x'])
+                    )
+
+                # Generate and save the Ramachandran figure.
+                if self.rama_save_as.currentText() != 'None':
+                    ordered_preferences = sorted(
+                        rama_preferences.items(),
+                        key=lambda item: item[0].casefold()
+                    )
+
+                    number_of_panels = len(ordered_preferences)
+
+                    if number_of_panels == 1:
+                        number_of_rows = 1
+                        number_of_columns = 1
+
+                    elif number_of_panels == 2:
+                        number_of_rows = 1
+                        number_of_columns = 2
+
+                    elif number_of_panels == 3:
+                        number_of_rows = 1
+                        number_of_columns = 3
+
+                    else:
+                        number_of_rows = 2
+                        number_of_columns = 2
+
+                    try:
+                        requested_width = float(
+                            self.figSizeX_rama.text().strip()
+                        )
+                    except ValueError:
+                        requested_width = 8.0
+
+                    try:
+                        requested_height = float(
+                            self.figSizeY_rama.text().strip()
+                        )
+                    except ValueError:
+                        requested_height = 6.0
+
+                    # Ensure sufficient space for larger, publication-readable text.
+                    figure_width = max(
+                        requested_width,
+                        number_of_columns * 5.8
+                    )
+                    figure_height = max(
+                        requested_height,
+                        number_of_rows * 5.8 + 0.6
+                    )
+
+                    with plt.rc_context({
+                        'font.family': 'sans-serif',
+                        'font.sans-serif': ['Arial', 'DejaVu Sans'],
+                        'font.size': 14,
+                        'axes.labelcolor': '#111111',
+                        'axes.titlecolor': '#111111',
+                        'xtick.color': '#111111',
+                        'ytick.color': '#111111'
+                    }):
+                        fig, axes = plt.subplots(
+                            number_of_rows,
+                            number_of_columns,
+                            figsize=(figure_width, figure_height),
+                            squeeze=False
+                        )
+
+                        axes_flat = axes.flatten()
+
+                        # Major tick positions requested for both axes.
+                        torsion_ticks = np.arange(-180, 181, 60)
+
+                        for panel_index, (key, val) in enumerate(
+                            ordered_preferences
+                        ):
+                            ax = axes_flat[panel_index]
+
+                            normal_x = [
+                                entry[0]
+                                for entry in normals[key]['x']
+                            ]
+                            normal_y = [
+                                entry[0]
+                                for entry in normals[key]['y']
+                            ]
+                            outlier_x = [
+                                entry[0]
+                                for entry in outliers[key]['x']
+                            ]
+                            outlier_y = [
+                                entry[0]
+                                for entry in outliers[key]['y']
+                            ]
+
+                            # Plot preference map.
+                            ax.imshow(
+                                rama_pref_values[key],
+                                cmap=val['cmap'],
+                                norm=colors.BoundaryNorm(
+                                    val['bounds'],
+                                    val['cmap'].N
+                                ),
+                                extent=(-180, 180, -180, 180),
+                                origin='lower',
+                                interpolation='nearest',
+                                aspect='equal',
+                                zorder=0
+                            )
+
+                            # Observed residues within allowed/favoured regions.
+                            if len(normal_x) > 0:
+                                ax.scatter(
+                                    normal_x,
+                                    normal_y,
+                                    s=54,
+                                    c='#1F4E79',
+                                    edgecolors='#FFFFFF',
+                                    linewidths=0.65,
+                                    alpha=0.95,
+                                    zorder=3
+                                )
+
+                            # Outlier residues.
+                            if len(outlier_x) > 0:
+                                ax.scatter(
+                                    outlier_x,
+                                    outlier_y,
+                                    s=60,
+                                    c='#C62828',
+                                    edgecolors='#FFFFFF',
+                                    linewidths=0.65,
+                                    alpha=1.0,
+                                    zorder=4
+                                )
+
+                            # Save plot data for this residue category.
+                            plt_dic[key + '_normal_x'] = normal_x
+                            plt_dic[key + '_normal_y'] = normal_y
+                            plt_dic[key + '_outlier_x'] = outlier_x
+                            plt_dic[key + '_outlier_y'] = outlier_y
+
+                            annotation_list = []
+
+                            for point_index, residue_data in enumerate(
+                                outliers[key]['x']
+                            ):
+                                if self.annot.currentText() == 'Residue':
+                                    annotation = residue_data[2]
+
+                                elif (
+                                    self.annot.currentText()
+                                    == 'Residue + Residue number'
+                                ):
+                                    annotation = (
+                                        residue_data[2]
+                                        + str(residue_data[3])
+                                    )
+
+                                elif (
+                                    self.annot.currentText()
+                                    == 'Residue + Residue number + Chain id'
+                                ):
+                                    annotation = (
+                                        residue_data[2]
+                                        + str(residue_data[3])
+                                        + ' ('
+                                        + residue_data[1]
+                                        + ')'
+                                    )
+
+                                else:
+                                    annotation = ''
+
+                                if annotation:
+                                    ax.annotate(
+                                        annotation,
+                                        xy=(
+                                            outlier_x[point_index],
+                                            outlier_y[point_index]
+                                        ),
+                                        xytext=(5, 5),
+                                        textcoords='offset points',
+                                        fontsize=11,
+                                        fontweight='semibold',
+                                        color='#7A1F1F',
+                                        zorder=5
+                                    )
+
+                                annotation_list.append(annotation)
+
+                            plt_dic[
+                                key + '_outlier_annotation'
+                            ] = annotation_list
+
+                            # Titles, axis labels, units, ticks, and visual style.
+                            ax.set_title(
+                                key,
+                                fontsize=18,
+                                fontweight='semibold',
+                                pad=10
+                            )
+
+                            ax.set_xlim(-180, 180)
+                            ax.set_ylim(-180, 180)
+
+                            ax.set_xticks(torsion_ticks)
+                            ax.set_yticks(torsion_ticks)
+
+                            ax.set_xlabel(
+                                r'$\phi$ torsion angle (°)',
+                                fontsize=15,
+                                fontweight='semibold',
+                                labelpad=8
+                            )
+
+                            ax.set_ylabel(
+                                r'$\psi$ torsion angle (°)',
+                                fontsize=15,
+                                fontweight='semibold',
+                                labelpad=8
+                            )
+
+                            ax.tick_params(
+                                axis='both',
+                                which='major',
+                                labelsize=13,
+                                width=1.2,
+                                length=5
+                            )
+
+                            # Zero-angle reference axes; these are not grid lines.
+                            ax.axhline(
+                                0,
+                                color='#222222',
+                                linewidth=1.15,
+                                zorder=2
+                            )
+                            ax.axvline(
+                                0,
+                                color='#222222',
+                                linewidth=1.15,
+                                zorder=2
+                            )
+
+                            # Explicitly remove all grid lines.
+                            ax.grid(False)
+
+                            for spine in ax.spines.values():
+                                spine.set_linewidth(1.25)
+                                spine.set_color('#222222')
+
+                        # Hide unused subplot axes, if any.
+                        for unused_axis in axes_flat[number_of_panels:]:
+                            unused_axis.set_visible(False)
+
+                        # Shared legend for observed residues and outliers.
+                        legend_handles = [
+                            Line2D(
+                                [0],
+                                [0],
+                                marker='o',
+                                color='w',
+                                label='Residues within allowed regions',
+                                markerfacecolor='#1F4E79',
+                                markeredgecolor='#FFFFFF',
+                                markeredgewidth=0.65,
+                                markersize=9
+                            ),
+                            Line2D(
+                                [0],
+                                [0],
+                                marker='o',
+                                color='w',
+                                label='Outlier residues',
+                                markerfacecolor='#C62828',
+                                markeredgecolor='#FFFFFF',
+                                markeredgewidth=0.65,
+                                markersize=9
+                            )
+                        ]
+
+                        fig.legend(
+                            handles=legend_handles,
+                            loc='lower center',
+                            ncol=2,
+                            frameon=False,
+                            fontsize=12,
+                            bbox_to_anchor=(0.5, 0.01)
+                        )
+
+                        fig.tight_layout(rect=(0, 0.075, 1, 1))
+
                         if save:
-                            file_format = [v[0] for k, v in self.formats.items() if k + ' (*.' + v[0] + ')' == self.rama_save_as.currentText()][0]
-                            if self.rama_gen.isChecked():
-                                rama_gen = 'general_'
-                            else:
-                                rama_gen = ''
-                            if self.rama_gly.isChecked():
-                                rama_gly = 'gly_'
-                            else:
-                                rama_gly = ''
-                            if self.rama_pro.isChecked():
-                                rama_pro = 'pro_'
-                            else:
-                                rama_pro = ''
-                            if self.rama_prePro.isChecked():
-                                rama_prePro = 'prePro_'
-                            else:
-                                rama_prePro = ''
-                            file_name = rama_gen + rama_gly + rama_pro + rama_prePro
-                            plt.savefig(os.path.join(self.path, os.path.splitext(file.text())[0] + '_ramachandran_' + file_name + '.' + file_format))
+                            file_format = [
+                                value[0]
+                                for name, value in self.formats.items()
+                                if (
+                                    name + ' (*.' + value[0] + ')'
+                                    == self.rama_save_as.currentText()
+                                )
+                            ][0]
+
+                            rama_gen = (
+                                'general_'
+                                if self.rama_gen.isChecked()
+                                else ''
+                            )
+                            rama_gly = (
+                                'gly_'
+                                if self.rama_gly.isChecked()
+                                else ''
+                            )
+                            rama_pro = (
+                                'pro_'
+                                if self.rama_pro.isChecked()
+                                else ''
+                            )
+                            rama_prepro = (
+                                'prePro_'
+                                if self.rama_prePro.isChecked()
+                                else ''
+                            )
+
+                            plot_suffix = (
+                                rama_gen
+                                + rama_gly
+                                + rama_pro
+                                + rama_prepro
+                            )
+
+                            figure_path = os.path.join(
+                                self.path,
+                                os.path.splitext(pdb_name)[0]
+                                + '_ramachandran_'
+                                + plot_suffix
+                                + '.'
+                                + file_format
+                            )
+
+                            fig.savefig(
+                                figure_path,
+                                dpi=300,
+                                bbox_inches='tight',
+                                facecolor='white'
+                            )
+
+                            plt.close(fig)
+
                         else:
                             plt.show()
-                            plt.close()
-                        # save plot data
-                        pd.DataFrame.to_csv(pd.DataFrame(dict([(k, pd.Series(v)) for k, v in plt_dic.items()])),
-                                            os.path.join(self.path, os.path.splitext(file.text())[0] +
-                                                         '_PhiPsi_plot_data.csv'), index=False)
-                    # show outliers
-                    if len(self.outlier_dic) > 0 or len(self.allowed_dic) > 0:
-                        self.group_outlier.show()
-                        dic = collections.OrderedDict()
-                        if self.display_outlier.currentText() == 'Outliers':
-                            dic = self.outlier_dic
-                            self.outlier_count_label.setText(str(len(dic['Model'])))
-                        if self.display_outlier.currentText() == 'Number of outliers':
-                            for k, v in self.countOutlier_dic.items():
-                                if k == 'Model':
-                                    dic[k] = v
-                                if k in self.rama_types:
-                                    dic[k] = v
-                            self.outlier_count_label.setText('')
-                        if self.display_outlier.currentText() == 'Models with outlier':
-                            dic = self.outlier_model_dic
-                            self.outlier_count_label.setText(str(len(dic['Model'])))
-                        if self.display_outlier.currentText() == 'Models without outlier':
-                            dic = self.allowed_dic
-                            self.outlier_count_label.setText(str(len(dic['Model'])))
-                        self.result_df = pd.DataFrame.from_dict(dic)
-                        qt_model = pd_model.PdModel(self.result_df)
-                        self.table_results.setModel(qt_model)
-                        self.table_results.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-                    self.msglabel_rama.setStyleSheet('color: green')
-                    self.msglabel_rama.setText('Finished')
+                            plt.close(fig)
 
-                if self.rama_save_as.currentText() == 'Display & edit plot':
-                    get_plot(0, self.rama_pdb.selectedItems()[0])
-                else:
-                    for n, file in enumerate(self.rama_pdb.selectedItems()):
-                        get_plot(n, file, True)
-            except Exception as er:
-                print(er)
-                self.msglabel_rama.setStyleSheet('color: red')
-                self.msglabel_rama.setText('Error')
-                # print('Error:', er, 'Line {}.'.format(sys.exc_info()[-1].tb_lineno))
+                    # Save numerical Ramachandran data.
+                    pd.DataFrame(
+                        dict(
+                            [
+                                (key, pd.Series(value))
+                                for key, value in plt_dic.items()
+                            ]
+                        )
+                    ).to_csv(
+                        os.path.join(
+                            self.path,
+                            os.path.splitext(pdb_name)[0]
+                            + '_PhiPsi_plot_data.csv'
+                        ),
+                        index=False
+                    )
+
+                # Display outlier information in the table.
+                if (
+                    len(self.outlier_dic['Model']) > 0
+                    or len(self.allowed_dic['Model']) > 0
+                ):
+                    self.group_outlier.show()
+                    self.display_outlier_format()
+
+                self.msglabel_rama.setStyleSheet('color: green')
+                self.msglabel_rama.setText('Finished')
+
+            if self.rama_save_as.currentText() == 'Display & edit plot':
+                get_plot(0, selected_pdb_files[0], save=False)
+
+            else:
+                for model_number, pdb_item in enumerate(selected_pdb_files):
+                    get_plot(model_number, pdb_item, save=True)
+
+        except Exception as er:
+            print(er)
+            self.msglabel_rama.setStyleSheet('color: red')
+            self.msglabel_rama.setText('Error')
 
 
 # def main():

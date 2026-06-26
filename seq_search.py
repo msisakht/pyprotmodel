@@ -8,6 +8,7 @@ import time
 import requests
 import collections
 import clipboard
+from pathlib import Path
 import pandas as pd
 import PyQt5
 from PyQt5 import QtCore
@@ -19,23 +20,69 @@ import config
 import pd_model
 
 
+APP_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = APP_DIR.parent
+
+TEMPLATES_DIR = PROJECT_ROOT / "templates"
+TEMP_DIR = PROJECT_ROOT / "temp"
+INFO_FILE = PROJECT_ROOT / "info"
+
+DEFAULT_INFO = {
+    "Path": str(TEMPLATES_DIR),
+    "Browsed_path": [],
+    "Target": "",
+    "multi_chain": "",
+    "add_ligands": "",
+    "add_ligand_rsrFile": "",
+    "add_ligand_feature_mat": "",
+    "use_symmetry": "",
+    "loop_res_num": "",
+    "symmetry": ""
+}
+
+
+def load_info():
+    TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
+
+    data = {}
+
+    if INFO_FILE.exists():
+        try:
+            with INFO_FILE.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            if not isinstance(data, dict):
+                data = {}
+
+        except (OSError, json.JSONDecodeError):
+            data = {}
+
+    info = DEFAULT_INFO.copy()
+    info.update(data)
+
+    if not isinstance(info.get("Browsed_path"), list):
+        info["Browsed_path"] = []
+
+    info["Browsed_path"] = [
+        pth for pth in info["Browsed_path"]
+        if isinstance(pth, str) and os.path.exists(pth)
+    ]
+
+    if not isinstance(info.get("Path"), str) or not os.path.isdir(info["Path"]):
+        info["Path"] = str(TEMPLATES_DIR)
+
+    save_info(info)
+    return info
+
+
+def save_info(info):
+    with INFO_FILE.open("w", encoding="utf-8") as f:
+        json.dump(info, f, indent=2)
+        
+
 class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
     dir_signal = QtCore.pyqtSignal(str)
-    # create info file
-    os.makedirs('../templates', exist_ok=True)
-    os.makedirs('../temp', exist_ok=True)
-    if not os.path.exists(os.path.join(os.getcwd(), 'info')):
-        with open('info', 'w') as f:
-            json.dump(
-                {'Path': os.path.join(os.getcwd(), '../templates'), 'Browsed_path': [],
-                 'Target': '', 'multi_chain': '', 'add_ligands': '', 'add_ligand_rsrFile': '', 'add_ligand_feature_mat': '',
-                 'use_symmetry': '', 'loop_res_num': '', 'symmetry': ''}, f)
-    file = open('info')
-    infoFile = json.load(file)
-    path = infoFile['Path']
-    # check for valid path
-    infoFile['Browsed_path'] = [pth for pth in infoFile['Browsed_path'] if os.path.exists(pth)]
-
     search_result = {}
     selectedL = []
     colors_10 = ['#afd8aa', '#e88a5c', '#a8bdec', '#cca2c5', '#edd269', '#b4e4f7', '#ecbe82', '#ecc9c1', '#efbdc9', '#fbdce2',
@@ -50,7 +97,11 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
     errorL = []
 
     def __init__(self):
-        super(self.__class__, self).__init__()
+        super().__init__()
+
+        self.infoFile = load_info()
+        self.path = self.infoFile["Path"]
+
         self.setupUi(self)
         # working dir
         # add subdir of Templates dir
@@ -93,26 +144,30 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
         self.set_working_dir()
 
     def set_working_dir(self):
-        with open('info', 'r+') as f:
-            jFile = json.load(f)
-            path = jFile['Path']
-            if self.workingDir.currentText() == 'templates':
-                path = os.path.join(os.getcwd(), 'templates')
-            if os.path.isdir(os.path.join('templates', self.workingDir.currentText())):
-                path = os.path.join('templates', self.workingDir.currentText())
-            else:
-                for pth in jFile['Browsed_path']:
-                    if self.workingDir.currentText() == os.path.basename(pth):
-                        path = pth
-            jFile['Path'] = os.path.abspath(path)
-            f.seek(0)
-            f.write(json.dumps(jFile))
-            f.truncate()
-        file = open('info')
-        infoFile = json.load(file)
-        path = infoFile['Path']
-        self.workingDirShow.setText(path)
-        self.dir_signal.emit(path)
+        jFile = load_info()
+        current_dir = self.workingDir.currentText().strip()
+        path = jFile["Path"]
+
+        if current_dir.casefold() == "templates":
+            path = str(TEMPLATES_DIR)
+
+        elif (TEMPLATES_DIR / current_dir).is_dir():
+            path = str(TEMPLATES_DIR / current_dir)
+
+        else:
+            for pth in jFile["Browsed_path"]:
+                if current_dir == os.path.basename(pth):
+                    path = pth
+                    break
+
+        jFile["Path"] = os.path.abspath(path)
+        save_info(jFile)
+
+        self.infoFile = jFile
+        self.path = jFile["Path"]
+
+        self.workingDirShow.setText(self.path)
+        self.dir_signal.emit(self.path)
 
     def connect_modeller(self):
         def read_path_from_reg():
@@ -145,18 +200,17 @@ class SeqSearch(QMainWindow, QObject, tpl_search_seq.Ui_Form):
 
     def browse_dir(self):
         setPath = str(PyQt5.QtWidgets.QFileDialog.getExistingDirectory())
-        with open('info', 'r+') as f:
-            jFile = json.load(f)
-            if not setPath:
-                path = jFile['Path']
-            else:
-                path = os.path.abspath(setPath)
-                if path not in jFile['Browsed_path']:
-                    jFile['Browsed_path'].append(path)
-            jFile['Path'] = os.path.abspath(path)
-            f.seek(0)
-            f.write(json.dumps(jFile))
-            f.truncate()
+        jFile = load_info()
+        if not setPath:
+            path = jFile['Path']
+        else:
+            path = os.path.abspath(setPath)
+            if path not in jFile['Browsed_path']:
+                jFile['Browsed_path'].append(path)
+        jFile['Path'] = os.path.abspath(path)
+        save_info(jFile)
+        self.infoFile = jFile
+        self.path = jFile["Path"]
         self.workingDir.clear()
         newPath = []
         for i in jFile['Browsed_path']:
